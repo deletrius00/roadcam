@@ -18,7 +18,7 @@ import {
   zoomForRadius,
   type Point,
 } from '../lib/tiles';
-import type { Incident, LatLon, NearbyCamera, Relation, SignMessage } from '../lib/types';
+import type { FlowLevel, FlowReading, Incident, LatLon, NearbyCamera, Relation, SignMessage } from '../lib/types';
 import { withCacheBust } from './CameraCard';
 
 export interface MapCamera {
@@ -33,6 +33,8 @@ interface Props {
   cameras: MapCamera[];
   incidents: Incident[];
   signs: SignMessage[];
+  /** Live congestion at road sensors (Washington). */
+  flow?: FlowReading[];
   radiusMiles: number;
   /** Half-width of the ahead/behind "flashlight" in degrees (matches classifyRelation). */
   coneDeg?: number;
@@ -54,14 +56,26 @@ const RELATION_LABEL: Record<MapCamera['relation'], string> = {
   nearby: 'Nearby',
 };
 
-type Selected = { type: 'camera'; id: string } | { type: 'incident'; id: string } | { type: 'sign'; id: string } | null;
+type Selected =
+  | { type: 'camera'; id: string }
+  | { type: 'incident'; id: string }
+  | { type: 'sign'; id: string }
+  | { type: 'flow'; id: string }
+  | null;
+
+export const FLOW_LABEL: Record<FlowLevel, string> = {
+  WideOpen: 'Flowing freely',
+  Moderate: 'Moderate traffic',
+  Heavy: 'Heavy traffic',
+  StopAndGo: 'Stop-and-go',
+};
 
 type Gesture =
   | { kind: 'drag'; id: number; startX: number; startY: number; startCenter: Point; moved: boolean }
   | { kind: 'pinch'; startDist: number }
   | null;
 
-export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
+export function MapView({ me, heading, cameras, incidents, signs, flow = [], radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** null = automatic zoom that fits the cameras. */
@@ -222,6 +236,7 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
   const selectedCamera = selected?.type === 'camera' ? cameras.find((c) => c.camera.id === selected.id) : undefined;
   const selectedIncident = selected?.type === 'incident' ? incidents.find((i) => i.id === selected.id) : undefined;
   const selectedSign = selected?.type === 'sign' ? signs.find((s) => s.id === selected.id) : undefined;
+  const selectedFlow = selected?.type === 'flow' ? flow.find((f) => f.id === selected.id) : undefined;
   // Working cameras on top of offline ones; the selected pin on top of everything.
   const orderedCameras = [...cameras].sort(
     (a, b) =>
@@ -275,6 +290,21 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
             )}
           </svg>
         )}
+
+        {flow.map((f) => {
+          const p = toScreen(f);
+          if (!onScreen(p)) return null;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              className={`map-flow flow-${f.level} ${isSelected('flow', f.id) ? 'selected' : ''}`}
+              style={{ left: p.x, top: p.y }}
+              onClick={() => toggle({ type: 'flow', id: f.id })}
+              aria-label={`${FLOW_LABEL[f.level]} at ${f.name}`}
+            />
+          );
+        })}
 
         {signs.map((s) => {
           const p = toScreen(s);
@@ -370,6 +400,14 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
         <span><i className="key key-offline" />Offline</span>
         {incidents.length > 0 && <span><i className="key key-incident" />Incident</span>}
         {signs.length > 0 && <span><i className="key key-sign" />Sign</span>}
+        {flow.length > 0 && (
+          <span>
+            <i className="key flow-WideOpen" />
+            <i className="key flow-Heavy" />
+            <i className="key flow-StopAndGo" />
+            Traffic
+          </span>
+        )}
       </div>
 
       <div className="map-controls">
@@ -429,6 +467,21 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
         </div>
       )}
 
+      {selectedFlow && (
+        <div className="map-popup">
+          <div className={`map-popup-icon flow-${selectedFlow.level}`} aria-hidden="true" />
+          <div className="map-popup-body">
+            <strong>{FLOW_LABEL[selectedFlow.level]}</strong>
+            <span className="muted">
+              {selectedFlow.route} {selectedFlow.direction ? `${selectedFlow.direction.toLowerCase()}bound` : ''} at {selectedFlow.name} · WSDOT sensor
+            </span>
+          </div>
+          <button type="button" className="map-popup-close" onClick={() => setSelected(null)} aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
+
       {selectedSign && (
         <div className="map-popup">
           <div className="sign-face">
@@ -454,7 +507,7 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
           OpenStreetMap
         </a>{' '}
-        contributors · Traffic: CHP, Caltrans
+        contributors · Traffic: CHP, Caltrans, WSDOT
       </div>
     </div>
   );

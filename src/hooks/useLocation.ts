@@ -3,7 +3,8 @@ import { demoPosition } from '../lib/demo';
 import { resolveHeading, type Fix } from '../lib/heading';
 import type { LatLon } from '../lib/types';
 
-export type LocationMode = 'off' | 'live' | 'demo';
+/** 'fixed' = a pinned spot from the URL (?at=lat,lon), for previewing a place you're not at. */
+export type LocationMode = 'off' | 'live' | 'demo' | 'fixed';
 export type LocationStatus = 'idle' | 'locating' | 'tracking' | 'denied' | 'unavailable';
 
 export interface LocationState {
@@ -35,7 +36,7 @@ const HISTORY_MS = 30_000;
  * Follows your position (real GPS, or a simulated drive in demo mode)
  * and works out your heading.
  */
-export function useLocation(mode: LocationMode, attempt = 0): LocationState {
+export function useLocation(mode: LocationMode, attempt = 0, fixedAt: LatLon | null = null): LocationState {
   const [state, setState] = useState<LocationState>(INITIAL);
   const history = useRef<Array<LatLon & { t: number }>>([]);
   const lastHeading = useRef<{ value: number; t: number } | null>(null);
@@ -69,6 +70,11 @@ export function useLocation(mode: LocationMode, attempt = 0): LocationState {
         error: null,
       });
     };
+
+    if (mode === 'fixed' && fixedAt) {
+      setState({ ...INITIAL, status: 'tracking', position: fixedAt, accuracyMeters: 0 });
+      return;
+    }
 
     if (mode === 'demo') {
       const start = Date.now();
@@ -115,7 +121,7 @@ export function useLocation(mode: LocationMode, attempt = 0): LocationState {
       { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [mode, attempt]);
+  }, [mode, attempt, fixedAt?.lat, fixedAt?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return state;
 }

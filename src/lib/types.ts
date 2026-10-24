@@ -26,6 +26,8 @@ export interface Camera extends LatLon {
   recordedAt: string | null;
   /** Which way the camera points, when the source says so (rare), else null. */
   facing: Compass | null;
+  /** Where the data came from. */
+  source?: 'caltrans' | 'wsdot' | 'demo';
 }
 
 /** Where an image's timestamp came from, from most to least trustworthy. */
@@ -80,9 +82,25 @@ export interface SignMessage extends LatLon {
   distanceMeters: number;
 }
 
+/** How traffic is moving at a road sensor (Washington only). */
+export type FlowLevel = 'WideOpen' | 'Moderate' | 'Heavy' | 'StopAndGo';
+
+export interface FlowReading extends LatLon {
+  id: string;
+  /** Sensor location, e.g. "Homeacres Rd". */
+  name: string;
+  route: string;
+  /** Direction of travel measured: North, South, East, West. */
+  direction: string;
+  level: FlowLevel;
+  distanceMeters: number;
+}
+
 export interface TrafficResponse {
   generatedAt: string;
   incidents: Incident[];
   signs: SignMessage[];
+  /** Live congestion at road sensors (Washington). Empty where no sensors exist. */
+  flow: FlowReading[];
   warnings: string[];
 }

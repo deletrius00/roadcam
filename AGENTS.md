@@ -8,7 +8,7 @@ Humans: this is also the fastest way to understand the project.
 **RoadCam** is a web app that uses your phone's location to find highway cameras ahead of
 you and behind you, and shows each camera's latest image with a live "x min ago" label.
 
-- **Data source:** Caltrans CCTV feeds (California only), one JSON file per district.
+- **Data sources:** California = Caltrans CCTV feeds (one JSON file per district), CHP incidents, Caltrans signs. Washington = WSDOT KML feeds (cameras, alerts, traffic flow), see `server/wsdot.ts`. `server/regions.ts` picks which state's feeds a search needs.
   Field reference: https://cwwp2.dot.ca.gov/documentation/cctv/cctv-field-description.htm
   A realistic sample lives in `tests/fixtures/caltrans-sample.json`. Use it; don't guess field names.
 - **Stack:** TypeScript (strict), React 19, Vite, Vitest, ESLint. Deployed on Vercel.

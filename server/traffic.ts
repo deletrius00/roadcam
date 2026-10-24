@@ -9,7 +9,9 @@ import { CALTRANS_DISTRICTS, pacificToIso } from './caltrans.js';
 import { defaultDeps, json, parseArea, type HandlerDeps } from './handler.js';
 import { demoTraffic } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
-import type { Incident, SignMessage, TrafficResponse } from '../src/lib/types.js';
+import type { FlowReading, Incident, SignMessage, TrafficResponse } from '../src/lib/types.js';
+import { regionsNear } from './regions.js';
+import { parseWsdotAlerts, parseWsdotFlow, WSDOT_ALERTS_URL, WSDOT_FLOW_URL } from './wsdot.js';
 
 export const CHP_URL = 'https://media.chp.ca.gov/sa_xml/sa.xml';
 export const MAX_ITEMS = 30;
@@ -156,9 +158,35 @@ export function parseSignFeed(jsonBody: unknown): RawSign[] {
 let chpCache: { loadedAt: number; incidents: RawIncident[] } | null = null;
 const signCache = new Map<number, { loadedAt: number; signs: RawSign[] }>();
 
+type RawFlow = Omit<FlowReading, 'distanceMeters'>;
+/** Road sensors are dense (one every half mile or so): allow more of them than incidents. */
+export const MAX_FLOW = 300;
+const WSDOT_TTL_MS = 60_000;
+const kmlCache = new Map<string, { loadedAt: number; items: unknown[] }>();
+
+/** Download a WSDOT KML feed and parse it, reusing the result for a minute. */
+async function loadCached<T>(key: string, url: string, parse: (kml: string) => T[], deps: HandlerDeps): Promise<T[]> {
+  const hit = kmlCache.get(key);
+  if (hit && deps.now() - hit.loadedAt < WSDOT_TTL_MS) return hit.items as T[];
+  const res = await deps.fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const items = parse(await res.text());
+  kmlCache.set(key, { loadedAt: deps.now(), items });
+  return items;
+}
+
+function nearbyAll<T extends { lat: number; lon: number }>(items: T[], center: { lat: number; lon: number }, radiusMeters: number, max: number) {
+  return items
+    .map((item) => ({ ...item, distanceMeters: distanceMeters(center, item) }))
+    .filter((item) => item.distanceMeters <= radiusMeters)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, max);
+}
+
 export function clearTrafficCache(): void {
   chpCache = null;
   signCache.clear();
+  kmlCache.clear();
 }
 
 async function loadIncidents(deps: HandlerDeps): Promise<RawIncident[]> {
@@ -202,28 +230,47 @@ export async function handleTrafficRequest(request: Request, deps: HandlerDeps =
       generatedAt: new Date(now).toISOString(),
       incidents: nearby(demo.incidents, center, radiusMeters),
       signs: nearby(demo.signs, center, radiusMeters),
+      flow: [],
       warnings: [],
     };
     return json(body, 200, { 'cache-control': 'no-store' });
   }
 
   const warnings: string[] = [];
-  const [chp, ...districts] = await Promise.allSettled([
-    loadIncidents(deps),
-    ...CALTRANS_DISTRICTS.map((d) => loadSigns(d, deps)),
-  ]);
-  const incidents = chp.status === 'fulfilled' ? chp.value : [];
-  if (chp.status === 'rejected') warnings.push('CHP incidents unavailable');
+  const incidents: RawIncident[] = [];
   const signs: RawSign[] = [];
-  districts.forEach((r, i) => {
-    if (r.status === 'fulfilled') signs.push(...(r.value as RawSign[]));
-    else warnings.push(`Caltrans district ${CALTRANS_DISTRICTS[i]} signs unavailable`);
-  });
+  const flow: RawFlow[] = [];
+  const regions = regionsNear(center, radiusMeters);
+
+  if (regions.includes('california')) {
+    const [chp, ...districts] = await Promise.allSettled([
+      loadIncidents(deps),
+      ...CALTRANS_DISTRICTS.map((d) => loadSigns(d, deps)),
+    ]);
+    if (chp.status === 'fulfilled') incidents.push(...chp.value);
+    else warnings.push('CHP incidents unavailable');
+    districts.forEach((r, i) => {
+      if (r.status === 'fulfilled') signs.push(...(r.value as RawSign[]));
+      else warnings.push(`Caltrans district ${CALTRANS_DISTRICTS[i]} signs unavailable`);
+    });
+  }
+
+  if (regions.includes('washington')) {
+    const [alerts, sensors] = await Promise.allSettled([
+      loadCached('wsdot-alerts', WSDOT_ALERTS_URL, parseWsdotAlerts, deps),
+      loadCached('wsdot-flow', WSDOT_FLOW_URL, parseWsdotFlow, deps),
+    ]);
+    if (alerts.status === 'fulfilled') incidents.push(...alerts.value);
+    else warnings.push('WSDOT alerts unavailable');
+    if (sensors.status === 'fulfilled') flow.push(...sensors.value);
+    else warnings.push('WSDOT traffic sensors unavailable');
+  }
 
   const body: TrafficResponse = {
     generatedAt: new Date(now).toISOString(),
     incidents: nearby(incidents, center, radiusMeters),
     signs: nearby(signs, center, radiusMeters),
+    flow: nearbyAll(flow, center, radiusMeters, MAX_FLOW),
     warnings,
   };
   return json(body, 200, { 'cache-control': 'public, s-maxage=60, stale-while-revalidate=60' });

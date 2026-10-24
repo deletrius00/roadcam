@@ -20,7 +20,7 @@ so you can tell at a glance whether to trust it.
 
 > **Passengers only.** Never use RoadCam while driving.
 
-Coverage: California state highways, using [Caltrans' public CCTV feeds](https://cwwp2.dot.ca.gov/documentation/cctv/cctv-field-description.htm).
+Coverage: California state highways ([Caltrans' public CCTV feeds](https://cwwp2.dot.ca.gov/documentation/cctv/cctv-field-description.htm), CHP incidents, freeway signs) and Washington state highways ([WSDOT Traveler Information](https://wsdot.wa.gov/traffic/api/): cameras, highway alerts, and live congestion from road sensors).
 
 ---
 

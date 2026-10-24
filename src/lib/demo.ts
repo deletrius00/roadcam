@@ -3,8 +3,8 @@
  * Used for trying the app from your couch, for screenshots, and for automated tests.
  * Turn it on with `?demo=1` in the URL.
  */
-import type { Camera, LatLon, NearbyCamera } from './types';
-import { distanceMeters } from './geo';
+import type { Camera, LatLon, NearbyCamera } from './types.js';
+import { distanceMeters } from './geo.js';
 
 /** The simulated car follows these points in order (roughly I-5 northbound). */
 export const DEMO_ROUTE: LatLon[] = [

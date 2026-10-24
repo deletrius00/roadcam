@@ -7,11 +7,11 @@
  * Deciding "ahead" vs "behind" happens in the browser, because your heading
  * changes every second while the list of nearby cameras changes slowly.
  */
-import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltrans';
-import { fetchImageLastModified, mapWithLimit } from './imageTime';
-import { demoNearby } from '../src/lib/demo';
-import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo';
-import type { Camera, CamerasResponse, NearbyCamera } from '../src/lib/types';
+import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltrans.js';
+import { fetchImageLastModified, mapWithLimit } from './imageTime.js';
+import { demoNearby } from '../src/lib/demo.js';
+import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
+import type { Camera, CamerasResponse, NearbyCamera } from '../src/lib/types.js';
 
 export const DEFAULT_RADIUS_MILES = 25;
 export const MAX_RADIUS_MILES = 100;

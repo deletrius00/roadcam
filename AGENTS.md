@@ -126,4 +126,7 @@ in the PR and update the fixture with a real (trimmed) sample.
 
 ## Lessons learned (add to this list after reviewing agent PRs)
 
-- _Empty for now. When an agent makes a mistake, add a one-line rule here so it doesn't happen again._
+- Files in `api/`, `server/` and `src/lib/` must use `.js` extensions on relative imports
+  (`import { x } from './geo.js'`). Vercel runs the API as plain Node ES modules with no bundler,
+  and the first deploy crashed without them. `tests/runtime-imports.test.ts` enforces this.
+- _When an agent makes a mistake, add a one-line rule here so it doesn't happen again._

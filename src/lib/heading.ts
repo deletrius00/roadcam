@@ -1,5 +1,5 @@
-import { bearingDeg, distanceMeters } from './geo';
-import type { LatLon } from './types';
+import { bearingDeg, distanceMeters } from './geo.js';
+import type { LatLon } from './types.js';
 
 /** We only trust a computed heading once you've moved at least this far. */
 export const MIN_MOVE_FOR_HEADING_METERS = 25;

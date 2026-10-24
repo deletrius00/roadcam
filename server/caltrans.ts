@@ -16,7 +16,7 @@
  *                    "static": { "currentImageUpdateFrequency": "5",
  *                                "currentImageURL": "https://..." } } } } ] }
  */
-import type { Camera } from '../src/lib/types';
+import type { Camera } from '../src/lib/types.js';
 
 export const CALTRANS_DISTRICTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 

@@ -1,4 +1,4 @@
-import type { LatLon, Relation } from './types';
+import type { LatLon, Relation } from './types.js';
 
 const EARTH_RADIUS_METERS = 6_371_000;
 export const METERS_PER_MILE = 1609.344;

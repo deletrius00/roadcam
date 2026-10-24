@@ -2,6 +2,7 @@
   "name": "roadcam",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "See live highway camera images of the road ahead of and behind you.",
   "scripts": {
     "dev": "vite",

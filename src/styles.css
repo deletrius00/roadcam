@@ -629,6 +629,16 @@ select {
 .map.dark .map-tile {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
 }
+/* Traffic-speed overlay: keep its green/orange/red as they are, in both themes. */
+.map-speed {
+  pointer-events: none;
+}
+.map.dark .map-speed .map-tile {
+  filter: none;
+}
+.map-speed .map-tile.loaded {
+  opacity: 0.9;
+}
 .map-radius {
   fill: none;
   stroke: var(--muted);

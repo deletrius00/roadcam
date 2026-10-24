@@ -7,6 +7,7 @@
  */
 import { CALTRANS_DISTRICTS, pacificToIso } from './caltrans.js';
 import { defaultDeps, json, parseArea, type HandlerDeps } from './handler.js';
+import { speedTilesEnabled } from './speedTiles.js';
 import { demoTraffic } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
 import type { FlowReading, Incident, SignMessage, TrafficResponse } from '../src/lib/types.js';
@@ -216,7 +217,12 @@ function nearby<T extends { lat: number; lon: number }>(items: T[], center: { la
     .slice(0, MAX_ITEMS);
 }
 
-export async function handleTrafficRequest(request: Request, deps: HandlerDeps = defaultDeps): Promise<Response> {
+export async function handleTrafficRequest(
+  request: Request,
+  deps: HandlerDeps = defaultDeps,
+  /** Whether /api/speed-tile has a TomTom key to work with. Tests pass this in. */
+  speedTiles: boolean = speedTilesEnabled(),
+): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const area = parseArea(params);
   if (area instanceof Response) return area;
@@ -231,6 +237,7 @@ export async function handleTrafficRequest(request: Request, deps: HandlerDeps =
       incidents: nearby(demo.incidents, center, radiusMeters),
       signs: nearby(demo.signs, center, radiusMeters),
       flow: [],
+      speedTiles,
       warnings: [],
     };
     return json(body, 200, { 'cache-control': 'no-store' });
@@ -271,6 +278,7 @@ export async function handleTrafficRequest(request: Request, deps: HandlerDeps =
     incidents: nearby(incidents, center, radiusMeters),
     signs: nearby(signs, center, radiusMeters),
     flow: nearbyAll(flow, center, radiusMeters, MAX_FLOW),
+    speedTiles,
     warnings,
   };
   return json(body, 200, { 'cache-control': 'public, s-maxage=60, stale-while-revalidate=60' });

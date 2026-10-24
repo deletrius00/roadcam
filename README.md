@@ -11,6 +11,7 @@ so you can tell at a glance whether to trust it.
 - **Traffic**: CHP incidents (crashes, hazards, stalled cars) and what the overhead freeway signs say right now, on the map and as a list
 - **Offline cameras** detected and marked (Caltrans' "Temporarily Unavailable" cards look fresh, so RoadCam checks the picture itself)
 - **Which lanes are which**: when Caltrans says which way a camera points, the picture's lanes are labeled ("↑ Northbound · You")
+- **Live traffic speeds** on the map (green / orange / red roads) for California, Washington and everywhere else, from TomTom (needs the free `TOMTOM_API_KEY`, see below)
 - Pinch, double-tap, drag and scroll to move around the map
 - **"On I-5"**: works out which highway you're on from the cameras around you
 - Plain-English camera names ("Truck Escape Ramp (shoulder)" instead of `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`)
@@ -62,8 +63,11 @@ Open http://localhost:5173 (or http://localhost:5173/?demo=1 for the demo drive)
 3. You get a URL like `https://roadcam-yourname.vercel.app`. Every push to `main` redeploys, and
    every pull request gets its own preview link, which is handy for reviewing agent PRs on your phone.
 
-The backend (`api/cameras.ts`) becomes a serverless function automatically. No configuration
-or API keys needed.
+The backend (`api/*.ts`) becomes serverless functions automatically.
+
+**Optional: live traffic-speed colors.** Make a free account at [developer.tomtom.com](https://developer.tomtom.com),
+copy your API key, then in Vercel open the project → **Settings → Environment Variables** → add
+`TOMTOM_API_KEY` with your key (all environments) → **Save**, and redeploy. Without it, everything else still works.
 
 ## Use it with background agents
 

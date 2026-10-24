@@ -109,6 +109,19 @@ export function tileUrl(tile: Tile): string {
   return `https://tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
 }
 
+/** How often the traffic-speed overlay reloads: a new URL every 5 minutes. */
+export const SPEED_TILE_REFRESH_MS = 5 * 60_000;
+
+/**
+ * Our own server's traffic-speed tile for the same square (see server/speedTiles.ts).
+ * `t` changes every 5 minutes so the colors refresh, while everyone in the same
+ * 5 minutes shares one cached copy.
+ */
+export function speedTileUrl(tile: Tile, now: number): string {
+  const t = Math.floor(now / SPEED_TILE_REFRESH_MS);
+  return `/api/speed-tile?z=${tile.z}&x=${tile.x}&y=${tile.y}&t=${t}`;
+}
+
 /**
  * SVG path for a pie slice ("wedge") — used to draw the ahead/behind zones.
  * Angles are compass degrees (0 = up/north, 90 = right/east), going clockwise.

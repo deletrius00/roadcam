@@ -36,7 +36,9 @@ npm install
 npm run dev          # http://localhost:5173 — open /?demo=1 for the simulated drive
 ```
 
-No API keys or environment variables are needed.
+No API keys are needed to run it. One optional key: `TOMTOM_API_KEY` turns on the live traffic-speed colors on the map
+(`server/speedTiles.ts`, `/api/speed-tile`). It lives only in Vercel → Settings → Environment Variables, never in code;
+without it the map simply has no speed colors. Tests never need it.
 
 ## Commands
 
@@ -134,4 +136,6 @@ in the PR and update the fixture with a real (trimmed) sample.
   and the first deploy crashed without them. `tests/runtime-imports.test.ts` enforces this.
 - Caltrans "Temporarily Unavailable" images have a fresh timestamp and normal size. Detect them from the picture bytes (`server/placeholder.ts`), never from age or size. The rule was validated on 592 live cameras; re-validate before changing it.
 - The CHP incident feed is sometimes invalid XML. Parse each `<Log>` block separately (`parseChpIncidents`), never with a strict XML parser.
+- Never send `TOMTOM_API_KEY` (or any key) to the browser. The browser asks `/api/speed-tile`, and the server adds the key.
+- Don't hand-draw map boxes (districts, regions). Check them against the real data first: a hand-drawn Caltrans district box once hid 5 Mojave cameras.
 - _When an agent makes a mistake, add a one-line rule here so it doesn't happen again._

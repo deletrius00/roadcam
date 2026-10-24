@@ -202,6 +202,7 @@ export function App() {
             incidents={traffic.data?.incidents ?? []}
             signs={traffic.data?.signs ?? []}
             flow={traffic.data?.flow ?? []}
+            speedTiles={traffic.data?.speedTiles ?? false}
             radiusMiles={radiusMiles}
             now={now}
             refreshKey={refreshKey}

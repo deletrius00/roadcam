@@ -102,5 +102,10 @@ export interface TrafficResponse {
   signs: SignMessage[];
   /** Live congestion at road sensors (Washington). Empty where no sensors exist. */
   flow: FlowReading[];
+  /**
+   * True when the server can serve live traffic-speed map tiles (/api/speed-tile).
+   * Those color the roads everywhere, including California, which has no free sensor feed.
+   */
+  speedTiles?: boolean;
   warnings: string[];
 }

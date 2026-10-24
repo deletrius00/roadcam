@@ -11,6 +11,7 @@ import {
   metersPerPixel,
   MIN_ZOOM,
   project,
+  speedTileUrl,
   tileUrl,
   unproject,
   visibleTiles,
@@ -35,6 +36,8 @@ interface Props {
   signs: SignMessage[];
   /** Live congestion at road sensors (Washington). */
   flow?: FlowReading[];
+  /** Draw the live traffic-speed overlay (colored road lines) from /api/speed-tile. */
+  speedTiles?: boolean;
   radiusMiles: number;
   /** Half-width of the ahead/behind "flashlight" in degrees (matches classifyRelation). */
   coneDeg?: number;
@@ -75,7 +78,7 @@ type Gesture =
   | { kind: 'pinch'; startDist: number }
   | null;
 
-export function MapView({ me, heading, cameras, incidents, signs, flow = [], radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
+export function MapView({ me, heading, cameras, incidents, signs, flow = [], speedTiles = false, radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** null = automatic zoom that fits the cameras. */
@@ -275,6 +278,25 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], rad
           ))}
         </div>
 
+        {/* Live traffic speeds: see-through tiles with green/orange/red road lines, drawn over the map. */}
+        {speedTiles && (
+          <div className="map-tiles map-speed" aria-hidden="true">
+            {tiles.map((t) => (
+              <img
+                key={t.key}
+                src={speedTileUrl(t, now)}
+                alt=""
+                draggable={false}
+                className="map-tile"
+                style={{ left: t.left, top: t.top }}
+                onLoad={(e) => e.currentTarget.classList.add('loaded')}
+                // No colors for this square (or the service is down): just leave the plain map.
+                onError={(e) => e.currentTarget.classList.remove('loaded')}
+              />
+            ))}
+          </div>
+        )}
+
         {/* The search radius, and the "flashlight" zones that decide ahead vs behind. */}
         {size.width > 0 && (
           <svg className="map-overlay" width={size.width} height={size.height} aria-hidden="true">
@@ -400,7 +422,7 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], rad
         <span><i className="key key-offline" />Offline</span>
         {incidents.length > 0 && <span><i className="key key-incident" />Incident</span>}
         {signs.length > 0 && <span><i className="key key-sign" />Sign</span>}
-        {flow.length > 0 && (
+        {(flow.length > 0 || speedTiles) && (
           <span>
             <i className="key flow-WideOpen" />
             <i className="key flow-Heavy" />

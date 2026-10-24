@@ -3,6 +3,7 @@ import { ageMs, formatAge, freshness } from '../lib/age';
 import { formatDistance } from '../lib/geo';
 import { friendlyCameraName, sideLabel } from '../lib/names';
 import { LaneGuide } from './LaneGuide';
+import { axisDirections, axisLabel } from '../lib/roadAxis';
 import type { NearbyCamera } from '../lib/types';
 
 interface Props {
@@ -69,7 +70,13 @@ export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen, he
         <p className="card-meta">
           {camera.route && <span className="chip">{camera.route}</span>}
           {camera.direction && <span className="chip chip-quiet">{sideLabel(camera.direction)}</span>}
-          {camera.facing && <span className="chip chip-quiet">Looks {camera.facing.toLowerCase()}</span>}
+          {camera.facing ? (
+            <span className="chip chip-facing">Looks {camera.facing.toLowerCase()}</span>
+          ) : camera.roadAxisDeg !== null ? (
+            <span className="chip chip-quiet" title={`Caltrans doesn't say which way this camera points. ${camera.route || 'The highway'} runs ${axisLabel(camera.roadAxisDeg)} here, so it's looking one of those two ways.`}>
+              Looks {axisDirections(camera.roadAxisDeg).join(' or ')}
+            </span>
+          ) : null}
           {camera.nearbyPlace && <span className="muted">near {camera.nearbyPlace}</span>}
         </p>
       </div>

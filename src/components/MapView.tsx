@@ -4,6 +4,7 @@ import { ageMs, formatAge, freshness } from '../lib/age';
 import { compassDegrees } from '../lib/facing';
 import { formatDistance, METERS_PER_MILE } from '../lib/geo';
 import { friendlyCameraName } from '../lib/names';
+import { axisDirections, axisLabel } from '../lib/roadAxis';
 import {
   clampZoom,
   MAX_ZOOM,
@@ -308,9 +309,11 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
               onClick={() => toggle({ type: 'camera', id: camera.id })}
               aria-label={`${friendlyCameraName(camera.name)}, ${camera.unavailable ? 'offline' : RELATION_LABEL[relation].toLowerCase()}`}
             >
-              {camera.facing && (
+              {camera.facing ? (
                 <span className="pin-facing" style={{ transform: `rotate(${compassDegrees(camera.facing)}deg)` }} aria-hidden="true" />
-              )}
+              ) : camera.roadAxisDeg !== null && !camera.unavailable ? (
+                <span className="pin-axis" style={{ transform: `translate(-50%, -50%) rotate(${camera.roadAxisDeg}deg)` }} aria-hidden="true" />
+              ) : null}
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
                 <path
                   d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Zm8 3.2a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Z"
@@ -397,7 +400,11 @@ export function MapView({ me, heading, cameras, incidents, signs, radiusMiles, c
               {RELATION_LABEL[selectedCamera.relation]} · {formatDistance(selectedCamera.distance)} ·{' '}
               {selectedCamera.camera.unavailable ? 'camera offline' : formatAge(ageMs(selectedCamera.camera.imageTakenAt, now))}
             </span>
-            {selectedCamera.camera.facing && <span className="muted">Looks {selectedCamera.camera.facing.toLowerCase()}</span>}
+            {selectedCamera.camera.facing ? (
+              <span className="muted">Looks {selectedCamera.camera.facing.toLowerCase()}</span>
+            ) : selectedCamera.camera.roadAxisDeg !== null ? (
+              <span className="muted">Looks {axisDirections(selectedCamera.camera.roadAxisDeg).join(' or ')} (road runs {axisLabel(selectedCamera.camera.roadAxisDeg)})</span>
+            ) : null}
           </div>
           <button type="button" className="map-popup-close" onClick={() => setSelected(null)} aria-label="Close">
             ×

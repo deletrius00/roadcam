@@ -11,6 +11,7 @@ import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltra
 import { fetchImageInfo, mapWithLimit } from './imageTime.js';
 import { demoNearby } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
+import { roadAxis } from '../src/lib/roadAxis.js';
 import type { Camera, CamerasResponse, LatLon, NearbyCamera } from '../src/lib/types.js';
 
 export const DEFAULT_RADIUS_MILES = 25;
@@ -125,6 +126,7 @@ export async function handleCamerasRequest(
       imageTakenAt: lastModified ?? camera.recordedAt,
       imageTimeSource: lastModified ? 'last-modified' : camera.recordedAt ? 'record' : 'unknown',
       unavailable,
+      roadAxisDeg: camera.facing ? null : roadAxis(camera, all),
     };
   });
 

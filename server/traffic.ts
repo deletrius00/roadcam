@@ -10,9 +10,13 @@ import { defaultDeps, json, parseArea, type HandlerDeps } from './handler.js';
 import { speedTilesEnabled } from './speedTiles.js';
 import { demoTraffic } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
-import type { FlowReading, Incident, SignMessage, TrafficResponse } from '../src/lib/types.js';
+import { districtsNear } from './districts.js';
+import { lcsFeedUrl, parseLaneClosures } from './lcs.js';
+import { nwsAlertsUrl, NWS_USER_AGENT, parseNwsAlerts } from './nws.js';
+import { parseTomtomIncidents, tomtomIncidentsUrl, type TomtomResult } from './tomtomIncidents.js';
+import type { Closure, FlowReading, Incident, SignMessage, TrafficResponse, WeatherAlert } from '../src/lib/types.js';
 import { regionsNear } from './regions.js';
-import { parseWsdotAlerts, parseWsdotFlow, WSDOT_ALERTS_URL, WSDOT_FLOW_URL } from './wsdot.js';
+import { parseWsdotAlerts, parseWsdotFlow, WSDOT_ALERTS_URL, WSDOT_FLOW_URL, wsdotAlertToClosure } from './wsdot.js';
 
 export const CHP_URL = 'https://media.chp.ca.gov/sa_xml/sa.xml';
 export const MAX_ITEMS = 30;
@@ -48,7 +52,13 @@ export function incidentKind(logType: string): string {
   if (/closure|sig\s*alert/i.test(logType)) return 'Road closure';
   if (/fire/i.test(logType)) return 'Fire';
   if (/disabled|stall|disabl/i.test(logType)) return 'Stalled vehicle';
-  if (/hazard|debris|animal|object|pedestrian|wrong.?way/i.test(logType)) return 'Hazard';
+  if (/debris|object|tire|load|spill/i.test(logType)) return 'Debris';
+  if (/\bfog\b|visibility/i.test(logType)) return 'Fog';
+  if (/flood/i.test(logType)) return 'Flooding';
+  if (/\bwind\b/i.test(logType)) return 'Wind';
+  if (/snow|\bice\b|chain|weather|road.?cond/i.test(logType)) return 'Weather';
+  if (/police|pursuit|traffic break|law enf|officer|swat|shooting/i.test(logType)) return 'Police activity';
+  if (/hazard|animal|pedestrian|wrong.?way/i.test(logType)) return 'Hazard';
   return 'Incident';
 }
 
@@ -188,7 +198,39 @@ export function clearTrafficCache(): void {
   chpCache = null;
   signCache.clear();
   kmlCache.clear();
+  jsonCache.clear();
 }
+
+// ---------- Closures, weather and TomTom incidents (shared small cache) ----------
+
+/** Closures and weather only matter this close; the Caltrans files are big. */
+export const MAX_EXTRA_RADIUS_METERS = 150 * METERS_PER_MILE;
+export const MAX_CLOSURES = 60;
+const LCS_TTL_MS = 10 * 60_000;
+const NWS_TTL_MS = 5 * 60_000;
+const TOMTOM_TTL_MS = 2 * 60_000;
+const jsonCache = new Map<string, { loadedAt: number; value: unknown }>();
+
+/** Fetch JSON with a per-URL cache. `ttl` is how long an answer stays fresh. */
+async function loadJson<T>(key: string, url: string, ttl: number, parse: (json: unknown) => T, deps: HandlerDeps, headers?: Record<string, string>): Promise<T> {
+  const hit = jsonCache.get(key);
+  if (hit && deps.now() - hit.loadedAt < ttl) return hit.value as T;
+  const res = await deps.fetch(url, { signal: AbortSignal.timeout(15_000), headers });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const value = parse(await res.json());
+  jsonCache.set(key, { loadedAt: deps.now(), value });
+  return value;
+}
+
+/** Rounded to ~5 km so nearby users share a TomTom answer (and the free quota). */
+const roundKey = (n: number) => (Math.round(n * 20) / 20).toFixed(2);
+
+export interface TrafficOptions {
+  /** TomTom key: turns on speed tiles and TomTom incidents. Tests pass a fake one. */
+  tomtomKey?: string;
+}
+
+export const defaultTrafficOptions = (): TrafficOptions => ({ tomtomKey: process.env.TOMTOM_API_KEY });
 
 async function loadIncidents(deps: HandlerDeps): Promise<RawIncident[]> {
   if (chpCache && deps.now() - chpCache.loadedAt < CHP_TTL_MS) return chpCache.incidents;
@@ -220,9 +262,10 @@ function nearby<T extends { lat: number; lon: number }>(items: T[], center: { la
 export async function handleTrafficRequest(
   request: Request,
   deps: HandlerDeps = defaultDeps,
-  /** Whether /api/speed-tile has a TomTom key to work with. Tests pass this in. */
-  speedTiles: boolean = speedTilesEnabled(),
+  options: TrafficOptions = defaultTrafficOptions(),
 ): Promise<Response> {
+  const tomtomKey = speedTilesEnabled(options.tomtomKey) ? options.tomtomKey!.trim() : null;
+  const speedTiles = tomtomKey !== null;
   const params = new URL(request.url).searchParams;
   const area = parseArea(params);
   if (area instanceof Response) return area;
@@ -238,6 +281,8 @@ export async function handleTrafficRequest(
       signs: nearby(demo.signs, center, radiusMeters),
       flow: [],
       speedTiles,
+      closures: nearbyAll(demo.closures, center, radiusMeters, MAX_CLOSURES),
+      weather: demo.weather,
       warnings: [],
     };
     return json(body, 200, { 'cache-control': 'no-store' });
@@ -247,6 +292,7 @@ export async function handleTrafficRequest(
   const incidents: RawIncident[] = [];
   const signs: RawSign[] = [];
   const flow: RawFlow[] = [];
+  const wsdotClosures: Array<Omit<Closure, 'distanceMeters'>> = [];
   const regions = regionsNear(center, radiusMeters);
 
   if (regions.includes('california')) {
@@ -267,10 +313,59 @@ export async function handleTrafficRequest(
       loadCached('wsdot-alerts', WSDOT_ALERTS_URL, parseWsdotAlerts, deps),
       loadCached('wsdot-flow', WSDOT_FLOW_URL, parseWsdotFlow, deps),
     ]);
-    if (alerts.status === 'fulfilled') incidents.push(...alerts.value);
+    if (alerts.status === 'fulfilled') {
+      // Roadwork and closures go to the Closures list; crashes and hazards stay incidents.
+      for (const alert of alerts.value) {
+        const closure = wsdotAlertToClosure(alert);
+        if (closure) wsdotClosures.push(closure);
+        else incidents.push(alert);
+      }
+    }
     else warnings.push('WSDOT alerts unavailable');
     if (sensors.status === 'fulfilled') flow.push(...sensors.value);
     else warnings.push('WSDOT traffic sensors unavailable');
+  }
+
+  // Closures, weather and TomTom: limited to 150 miles, all in parallel.
+  const extraRadius = Math.min(radiusMeters, MAX_EXTRA_RADIUS_METERS);
+  const closures: Array<Omit<Closure, 'distanceMeters'>> = [...wsdotClosures];
+  let weather: WeatherAlert[] = [];
+  const lcsDistricts = regions.includes('california') ? districtsNear(center, extraRadius) : [];
+  const [lcsResults, nws, tomtom] = await Promise.all([
+    Promise.allSettled(
+      lcsDistricts.map((d) => loadJson(`lcs-${d}`, lcsFeedUrl(d), LCS_TTL_MS, (j) => parseLaneClosures(j, now), deps)),
+    ),
+    loadJson(`nws-${nwsAlertsUrl(center.lat, center.lon)}`, nwsAlertsUrl(center.lat, center.lon), NWS_TTL_MS, parseNwsAlerts, deps, {
+      'user-agent': NWS_USER_AGENT,
+      accept: 'application/geo+json',
+    }).then(
+      (v) => ({ ok: true as const, v }),
+      () => ({ ok: false as const }),
+    ),
+    tomtomKey
+      ? loadJson<TomtomResult>(
+          `tomtom-${roundKey(center.lat)},${roundKey(center.lon)},${Math.round(extraRadius / 10_000)}`,
+          tomtomIncidentsUrl(center, extraRadius, tomtomKey),
+          TOMTOM_TTL_MS,
+          parseTomtomIncidents,
+          deps,
+        ).then(
+          (v) => ({ ok: true as const, v }),
+          () => ({ ok: false as const }),
+        )
+      : Promise.resolve(null),
+  ]);
+  lcsResults.forEach((r, i) => {
+    if (r.status === 'fulfilled') closures.push(...r.value);
+    else warnings.push(`Caltrans district ${lcsDistricts[i]} closures unavailable`);
+  });
+  if (nws.ok) weather = nws.v;
+  else warnings.push('Weather alerts unavailable');
+  if (tomtom) {
+    if (tomtom.ok) {
+      incidents.push(...tomtom.v.incidents);
+      closures.push(...tomtom.v.closures);
+    } else warnings.push('TomTom incidents unavailable');
   }
 
   const body: TrafficResponse = {
@@ -279,6 +374,8 @@ export async function handleTrafficRequest(
     signs: nearby(signs, center, radiusMeters),
     flow: nearbyAll(flow, center, radiusMeters, MAX_FLOW),
     speedTiles,
+    closures: nearbyAll(closures, center, extraRadius, MAX_CLOSURES),
+    weather,
     warnings,
   };
   return json(body, 200, { 'cache-control': 'public, s-maxage=60, stale-while-revalidate=60' });

@@ -8,7 +8,7 @@
  * description and a point. We read each Placemark with small regular expressions instead of
  * a full XML parser: simpler, and a broken item can't spoil the rest.
  */
-import type { Camera, FlowLevel, FlowReading, Incident } from '../src/lib/types.js';
+import type { Closure, Camera, FlowLevel, FlowReading, Incident } from '../src/lib/types.js';
 
 export const WSDOT_CAMERAS_URL = 'https://wsdot.wa.gov/traffic/api/HighwayCameras/kml.aspx';
 export const WSDOT_ALERTS_URL = 'https://wsdot.wa.gov/traffic/api/HighwayAlerts/kml.aspx';
@@ -139,11 +139,54 @@ export function parseWsdotAlerts(kml: string): Array<Omit<Incident, 'distanceMet
       description: impact ? `${impact} impact: ${text}` : text,
       location: routeFromText(text),
       startedAt: null,
+      source: 'WSDOT',
       lat: p.lat,
       lon: p.lon,
     });
   }
   return alerts;
+}
+
+/** Words WSDOT uses for work that hasn't started yet: "will be closed nightly", "beginning Monday". */
+const FUTURE_WORDING = /\b(will|beginning|begins|starting|starts|scheduled|planned|upcoming|nightly|next week|this weekend)\b/i;
+
+const CLOSURE_KINDS: Record<string, string> = {
+  'Road closure': 'Full closure',
+  'Lane closure': 'Lane closure',
+  Roadwork: 'Roadwork',
+};
+
+/** "…of northbound I-5…" → "Northbound"; "" when the text doesn't say. */
+function boundFrom(text: string): string {
+  const word = /\b(north|south|east|west)bound\b/i.exec(text)?.[1];
+  return word ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}bound` : '';
+}
+
+/**
+ * WSDOT roadwork and closure alerts, as closures. The free WSDOT feed has no start/end
+ * times, so "upcoming" comes from the wording ("will be closed nightly…").
+ * Returns null for alerts that aren't closures (crashes, hazards).
+ */
+export function wsdotAlertToClosure(alert: Omit<Incident, 'distanceMeters'>): Omit<Closure, 'distanceMeters'> | null {
+  const what = CLOSURE_KINDS[alert.kind];
+  if (!what) return null;
+  const text = alert.description.replace(/^\w+ impact:\s*/i, '');
+  return {
+    id: alert.id.replace('wsdot-alert-', 'wsdot-closure-'),
+    route: alert.location,
+    direction: boundFrom(text),
+    what,
+    facility: 'Highway',
+    work: text,
+    place: '',
+    lanes: '',
+    startsAt: null,
+    endsAt: null,
+    status: FUTURE_WORDING.test(text) ? 'upcoming' : 'active',
+    source: 'WSDOT',
+    lat: alert.lat,
+    lon: alert.lon,
+  };
 }
 
 // ---------- Traffic flow ----------

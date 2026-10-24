@@ -132,6 +132,7 @@ describe('Washington end to end', () => {
       if (url === WSDOT_CAMERAS_URL) return new Response(CAMERAS_KML);
       if (url === WSDOT_ALERTS_URL) return new Response(ALERTS_KML);
       if (url === WSDOT_FLOW_URL) return new Response(FLOW_KML);
+      if (url.startsWith('https://api.weather.gov/')) return Response.json({ features: [] });
       if (url.endsWith('.jpg')) return new Response(new Uint8Array([0xff, 0xd8]), { status: 206, headers: { 'last-modified': 'Sat, 24 Oct 2026 06:59:00 GMT' } });
       return new Response('unexpected', { status: 500 });
     }) as typeof fetch,

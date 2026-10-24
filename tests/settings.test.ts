@@ -46,7 +46,7 @@ describe('parseRadiusMiles', () => {
     expect(parseRadiusMiles(saved)).toBe(25);
   });
 
-  it.each(['30', '0', '-25', '25.5', '100'])('defaults to 25 for %j, which is not one of the options', (saved) => {
+  it.each(['30', '0', '-25', '25.5', '75'])('defaults to 25 for %j, which is not one of the options', (saved) => {
     expect(RADIUS_OPTIONS).not.toContain(Number(saved));
     expect(parseRadiusMiles(saved)).toBe(25);
   });

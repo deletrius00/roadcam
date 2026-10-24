@@ -18,7 +18,7 @@ import { parseWsdotCameras, WSDOT_CAMERAS_URL } from './wsdot.js';
 import type { Camera, CamerasResponse, LatLon, NearbyCamera } from '../src/lib/types.js';
 
 export const DEFAULT_RADIUS_MILES = 25;
-export const MAX_RADIUS_MILES = 100;
+export const MAX_RADIUS_MILES = 500;
 export const MAX_CAMERAS = 40;
 const FEED_CACHE_TTL_MS = 10 * 60_000;
 

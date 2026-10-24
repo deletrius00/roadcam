@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { usePrefersDark } from '../hooks/usePrefersDark';
 import { ageMs, formatAge, freshness } from '../lib/age';
+import { alertIcon, kindClass } from '../lib/alertIcons';
 import { compassDegrees } from '../lib/facing';
-import { formatDistance, METERS_PER_MILE } from '../lib/geo';
+import { distanceMeters, formatDistance, METERS_PER_MILE } from '../lib/geo';
 import { friendlyCameraName } from '../lib/names';
 import { axisDirections, axisLabel } from '../lib/roadAxis';
 import {
@@ -19,7 +20,8 @@ import {
   zoomForRadius,
   type Point,
 } from '../lib/tiles';
-import type { FlowLevel, FlowReading, Incident, LatLon, NearbyCamera, Relation, SignMessage } from '../lib/types';
+import type { Closure, FlowLevel, FlowReading, Incident, LatLon, NearbyCamera, Relation, SignMessage } from '../lib/types';
+import { closureWhen } from '../lib/closures';
 import { withCacheBust } from './CameraCard';
 
 export interface MapCamera {
@@ -38,6 +40,12 @@ interface Props {
   flow?: FlowReading[];
   /** Draw the live traffic-speed overlay (colored road lines) from /api/speed-tile. */
   speedTiles?: boolean;
+  /** Lane/road closures and roadwork, now and upcoming. */
+  closures?: Closure[];
+  /** Where the search circle is, when you've moved it away from yourself ("Search this area"). */
+  searchCenter?: LatLon | null;
+  /** Called with the map's center when you tap "Search this area". */
+  onSearchHere?: (center: LatLon) => void;
   radiusMiles: number;
   /** Half-width of the ahead/behind "flashlight" in degrees (matches classifyRelation). */
   coneDeg?: number;
@@ -64,6 +72,7 @@ type Selected =
   | { type: 'incident'; id: string }
   | { type: 'sign'; id: string }
   | { type: 'flow'; id: string }
+  | { type: 'closure'; id: string }
   | null;
 
 export const FLOW_LABEL: Record<FlowLevel, string> = {
@@ -78,7 +87,7 @@ type Gesture =
   | { kind: 'pinch'; startDist: number }
   | null;
 
-export function MapView({ me, heading, cameras, incidents, signs, flow = [], speedTiles = false, radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
+export function MapView({ me, heading, cameras, incidents, signs, flow = [], speedTiles = false, closures = [], searchCenter = null, onSearchHere, radiusMiles, coneDeg = 60, now, refreshKey, onOpen }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   /** null = automatic zoom that fits the cameras. */
@@ -235,6 +244,17 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
 
   const meScreen = toScreen(me);
   const radiusPx = radiusMeters / metersPerPixel(me.lat, zoom);
+  // The search circle is around you, unless you moved it with "Search this area".
+  const circleCenter = searchCenter ?? me;
+  const circleScreen = toScreen(circleCenter);
+  const circlePx = radiusMeters / metersPerPixel(circleCenter.lat, zoom);
+  // Offer "Search this area" once you've dragged the map well away from the current search.
+  const mapCenter = manualCenter;
+  const showSearchHere =
+    !!onSearchHere &&
+    mapCenter !== null &&
+    distanceMeters(mapCenter, circleCenter) > Math.max(METERS_PER_MILE, radiusMeters * 0.2);
+  const selectedClosure = selected?.type === 'closure' ? closures.find((c) => c.id === selected.id) : undefined;
   const isSelected = (type: NonNullable<Selected>['type'], id: string) => selected?.type === type && selected.id === id;
   const selectedCamera = selected?.type === 'camera' ? cameras.find((c) => c.camera.id === selected.id) : undefined;
   const selectedIncident = selected?.type === 'incident' ? incidents.find((i) => i.id === selected.id) : undefined;
@@ -300,8 +320,8 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
         {/* The search radius, and the "flashlight" zones that decide ahead vs behind. */}
         {size.width > 0 && (
           <svg className="map-overlay" width={size.width} height={size.height} aria-hidden="true">
-            <circle cx={meScreen.x} cy={meScreen.y} r={radiusPx} className="map-radius" />
-            {heading !== null && (
+            <circle cx={circleScreen.x} cy={circleScreen.y} r={circlePx} className="map-radius" />
+            {heading !== null && !searchCenter && (
               <>
                 <path d={wedgePath(meScreen.x, meScreen.y, radiusPx, heading - coneDeg, heading + coneDeg)} className="map-zone ahead" />
                 <path
@@ -378,6 +398,23 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
           );
         })}
 
+        {closures.map((c) => {
+          const p = toScreen(c);
+          if (!onScreen(p)) return null;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className={`map-pin pin-alert pin-closure ${c.status} ${isSelected('closure', c.id) ? 'selected' : ''}`}
+              style={{ left: p.x, top: p.y }}
+              onClick={() => toggle({ type: 'closure', id: c.id })}
+              aria-label={`${c.status === 'upcoming' ? 'Upcoming ' : ''}${c.what} on ${c.route}`}
+            >
+              <span aria-hidden="true">{alertIcon(c.what)}</span>
+            </button>
+          );
+        })}
+
         {incidents.map((inc) => {
           const p = toScreen(inc);
           if (!onScreen(p)) return null;
@@ -385,15 +422,12 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
             <button
               key={inc.id}
               type="button"
-              className={`map-pin pin-incident kind-${inc.kind.toLowerCase().replace(/\s+/g, '-')} ${isSelected('incident', inc.id) ? 'selected' : ''}`}
+              className={`map-pin pin-alert pin-incident ${kindClass(inc.kind)} ${isSelected('incident', inc.id) ? 'selected' : ''}`}
               style={{ left: p.x, top: p.y }}
               onClick={() => toggle({ type: 'incident', id: inc.id })}
               aria-label={`${inc.kind}: ${inc.description}`}
             >
-              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
-                <path d="M12 3 22 20H2Z" fill="currentColor" />
-                <path d="M12 9v5M12 16.5v.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
+              <span aria-hidden="true">{alertIcon(inc.kind)}</span>
             </button>
           );
         })}
@@ -420,7 +454,9 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
           <span><i className="key key-nearby" />Camera</span>
         )}
         <span><i className="key key-offline" />Offline</span>
-        {incidents.length > 0 && <span><i className="key key-incident" />Incident</span>}
+        {incidents.length > 0 && <span>💥 ⚠️ Incident</span>}
+        {closures.some((c) => c.status === 'active') && <span>🚧 Closure</span>}
+        {closures.some((c) => c.status === 'upcoming') && <span><i className="key key-upcoming" />Upcoming</span>}
         {signs.length > 0 && <span><i className="key key-sign" />Sign</span>}
         {(flow.length > 0 || speedTiles) && (
           <span>
@@ -431,6 +467,12 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
           </span>
         )}
       </div>
+
+      {showSearchHere && mapCenter && (
+        <button type="button" className="map-search-here" onClick={() => onSearchHere?.(mapCenter)}>
+          Search this area
+        </button>
+      )}
 
       <div className="map-controls">
         <button type="button" onClick={() => zoomAround(size.width / 2, size.height / 2, 1)} aria-label="Zoom in">
@@ -474,13 +516,35 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
 
       {selectedIncident && (
         <div className="map-popup">
-          <div className="map-popup-icon pin-incident" aria-hidden="true">!</div>
+          <div className="map-popup-icon pin-alert" aria-hidden="true">{alertIcon(selectedIncident.kind)}</div>
           <div className="map-popup-body">
             <strong>{selectedIncident.kind}</strong>
             <span>{selectedIncident.description}</span>
             <span className="muted">
               {selectedIncident.location}
-              {selectedIncident.startedAt ? ` · reported ${formatAge(ageMs(selectedIncident.startedAt, now))}` : ''} · CHP
+              {selectedIncident.startedAt ? ` · reported ${formatAge(ageMs(selectedIncident.startedAt, now))}` : ''}
+              {selectedIncident.delaySeconds ? ` · +${Math.round(selectedIncident.delaySeconds / 60)} min delay` : ''} ·{' '}
+              {selectedIncident.source ?? 'CHP'}
+            </span>
+          </div>
+          <button type="button" className="map-popup-close" onClick={() => setSelected(null)} aria-label="Close">
+            ×
+          </button>
+        </div>
+      )}
+
+      {selectedClosure && (
+        <div className="map-popup">
+          <div className="map-popup-icon pin-alert" aria-hidden="true">{alertIcon(selectedClosure.what)}</div>
+          <div className="map-popup-body">
+            <strong>
+              {selectedClosure.status === 'upcoming' ? 'Upcoming: ' : ''}
+              {selectedClosure.what}
+              {selectedClosure.facility !== 'Highway' ? ` (${selectedClosure.facility.toLowerCase()})` : ''}
+            </strong>
+            <span>{[selectedClosure.route, selectedClosure.direction, selectedClosure.place].filter(Boolean).join(' · ')}</span>
+            <span className="muted">
+              {[selectedClosure.work, selectedClosure.lanes, closureWhen(selectedClosure, now), selectedClosure.source].filter(Boolean).join(' · ')}
             </span>
           </div>
           <button type="button" className="map-popup-close" onClick={() => setSelected(null)} aria-label="Close">
@@ -529,7 +593,7 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
           OpenStreetMap
         </a>{' '}
-        contributors · Traffic: CHP, Caltrans, WSDOT
+        contributors · Traffic: CHP, Caltrans, WSDOT{speedTiles ? ', TomTom' : ''}
       </div>
     </div>
   );

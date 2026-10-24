@@ -10,7 +10,7 @@
  */
 
 /** The radius choices (miles) shown in the status bar. */
-export const RADIUS_OPTIONS: readonly number[] = [10, 25, 50];
+export const RADIUS_OPTIONS: readonly number[] = [5, 10, 25, 50, 100, 250, 500];
 
 /** Used on first visit, or when the saved value is missing or not one of the options. */
 export const DEFAULT_RADIUS_MILES = 25;

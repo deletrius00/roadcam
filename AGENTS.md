@@ -22,7 +22,7 @@ you and behind you, and shows each camera's latest image with a live "x min ago"
 | `src/hooks/` | React hooks: `useLocation` (GPS + heading), `useCameras` (fetching), `useNow` (1-second clock), `usePrefersDark` (light/dark map tiles) |
 | `src/components/` | UI pieces: `MapView` (hand-built map, no library), `CameraCard`, `CameraSection`, `StatusBar`, `StartScreen`, `Lightbox` |
 | `src/App.tsx` | Puts it together; sorts cameras into ahead / behind / side |
-| `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), which Caltrans districts a search needs (`districts.ts`), image age + offline check (`imageTime.ts`, `placeholder.ts`), `/api/cameras` (`handler.ts`), `/api/traffic` from CHP + Caltrans signs (`traffic.ts`) |
+| `server/` | Backend logic: lane closures (`lcs.ts`), NWS weather (`nws.ts`), TomTom incidents and speed tiles (`tomtomIncidents.ts`, `speedTiles.ts`), Caltrans parsing (`caltrans.ts`), which Caltrans districts a search needs (`districts.ts`), image age + offline check (`imageTime.ts`, `placeholder.ts`), `/api/cameras` (`handler.ts`), `/api/traffic` from CHP + Caltrans signs (`traffic.ts`) |
 | `api/cameras.ts`, `api/traffic.ts` | Thin Vercel serverless wrappers around `server/`. Keep them thin. |
 | `vite.config.mts` | Vite + Vitest config; a dev plugin serves `/api/cameras` locally with the same handler |
 | `tests/` | Vitest unit tests and fixtures |
@@ -138,4 +138,6 @@ in the PR and update the fixture with a real (trimmed) sample.
 - The CHP incident feed is sometimes invalid XML. Parse each `<Log>` block separately (`parseChpIncidents`), never with a strict XML parser.
 - Never send `TOMTOM_API_KEY` (or any key) to the browser. The browser asks `/api/speed-tile`, and the server adds the key.
 - Don't hand-draw map boxes (districts, regions). Check them against the real data first: a hand-drawn Caltrans district box once hid 5 Mojave cameras.
+- Caltrans lane-closure files are huge (LA is ~15 MB). Only load the districts near the search (`districtsNear`) and keep the 10-minute cache.
+- api.weather.gov requires a User-Agent header (`NWS_USER_AGENT`). Requests without one get refused.
 - _When an agent makes a mistake, add a one-line rule here so it doesn't happen again._

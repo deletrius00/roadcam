@@ -12,6 +12,10 @@ so you can tell at a glance whether to trust it.
 - **Offline cameras** detected and marked (Caltrans' "Temporarily Unavailable" cards look fresh, so RoadCam checks the picture itself)
 - **Which lanes are which**: when Caltrans says which way a camera points, the picture's lanes are labeled ("↑ Northbound · You")
 - **Live traffic speeds** on the map (green / orange / red roads) for California, Washington and everywhere else, from TomTom (needs the free `TOMTOM_API_KEY`, see below)
+- **Closures & roadwork, now and upcoming**: Caltrans' lane-closure schedule (up to 7 days ahead), WSDOT roadwork, and TomTom road works/closures, as a list with a *Now / Upcoming* switch and 🚧 / ⛔ pins on the map
+- **More warnings on the map, each with its own picture**: 💥 crashes, 🐢 traffic jams (with delay), 🪵 debris, 🚗 stalled cars, 🚓 police activity, 🌫️ fog, 🌊 flooding, 💨 wind, 🌨️ snow and ice
+- **Weather alerts** for where you are, from the National Weather Service (fog, flood, wind, winter storms)
+- **Search up to 500 miles**, or drag the map anywhere and tap **Search this area**
 - Pinch, double-tap, drag and scroll to move around the map
 - **"On I-5"**: works out which highway you're on from the cameras around you
 - Plain-English camera names ("Truck Escape Ramp (shoulder)" instead of `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`)

@@ -96,6 +96,24 @@ describe('CHP live format', () => {
   });
 });
 
+describe('CHP noise handling', () => {
+  const log = (id: string, type: string, loc: string, latlon: string) =>
+    `<Log ID = "${id}"><LogTime>"Oct 23 2026 11:20PM"</LogTime><LogType>"${type}"</LogType><Location>"${loc}"</Location><LATLON>"${latlon}"</LATLON></Log>`;
+
+  it('explains MZP (CHP guarding a Caltrans work crew) as roadwork', () => {
+    const [inc] = parseChpIncidents(log('1', 'MZP-Assist CT with Maintenance', 'I5 N / Main St', '34050000:118250000'));
+    expect(inc).toMatchObject({ kind: 'Roadwork', description: 'CHP protecting a Caltrans work zone' });
+  });
+
+  it('drops duplicate entries for the same event', () => {
+    const xml =
+      log('1', 'MZP-Assist CT with Maintenance', '777 W Washington Blvd', '34030000:118270000') +
+      log('2', 'MZP-Assist CT with Maintenance', '777 W Washington Blvd', '34030000:118270000') +
+      log('3', '1125-Traffic Hazard', '777 W Washington Blvd', '34030000:118270000');
+    expect(parseChpIncidents(xml).map((i) => i.id)).toEqual(['chp-1', 'chp-3']);
+  });
+});
+
 describe('Caltrans message signs', () => {
   it('keeps only signs showing a message', () => {
     const signs = parseSignFeed(SIGN_JSON);

@@ -40,6 +40,7 @@ export function chpTimeToIso(text: string): string | null {
 
 /** "1183-Trfc Collision-Unkn Inj" → "Crash". */
 export function incidentKind(logType: string): string {
+  if (/\bMZP\b|maintenance|construction|road ?work/i.test(logType)) return 'Roadwork';
   if (/collision|crash/i.test(logType)) return 'Crash';
   if (/closure|sig\s*alert/i.test(logType)) return 'Road closure';
   if (/fire/i.test(logType)) return 'Fire';
@@ -50,6 +51,8 @@ export function incidentKind(logType: string): string {
 
 /** "1183-Trfc Collision-Unkn Inj" → "Traffic collision, unknown injuries". */
 export function describeIncident(logType: string): string {
+  // "MZP" = Maintenance Zone Protection: CHP officers guarding a Caltrans work crew.
+  if (/\bMZP\b/i.test(logType)) return 'CHP protecting a Caltrans work zone';
   const text = logType
     .replace(/^\s*\d+[A-Z]?\s*-\s*/, '') // drop the radio code
     .replace(/\bTrfc\b/gi, 'Traffic')
@@ -74,6 +77,7 @@ function field(block: string, tag: string): string {
  */
 export function parseChpIncidents(xml: string): RawIncident[] {
   const incidents: RawIncident[] = [];
+  const seen = new Set<string>();
   // The live feed writes `<Log ID = "…">` (spaces around "=") and uses Windows line endings.
   for (const chunk of xml.split(/<Log\s+ID\s*=\s*"/).slice(1)) {
     const id = chunk.slice(0, chunk.indexOf('"'));
@@ -83,11 +87,16 @@ export function parseChpIncidents(xml: string): RawIncident[] {
     const lon = -Number(latlon[2]) / 1e6; // California is west of Greenwich: the feed drops the minus sign
     if (!lat || !lon) continue;
     const logType = field(chunk, 'LogType');
+    const location = field(chunk, 'Location') || field(chunk, 'LocationDesc');
+    // The same event is often logged more than once (several units, several dispatch centers).
+    const key = `${logType}|${location}|${lat.toFixed(3)}|${lon.toFixed(3)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     incidents.push({
       id: `chp-${id}`,
       kind: incidentKind(logType),
       description: describeIncident(logType) || 'Incident',
-      location: field(chunk, 'Location') || field(chunk, 'LocationDesc'),
+      location,
       startedAt: chpTimeToIso(field(chunk, 'LogTime')),
       lat,
       lon,

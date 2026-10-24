@@ -74,7 +74,8 @@ function field(block: string, tag: string): string {
  */
 export function parseChpIncidents(xml: string): RawIncident[] {
   const incidents: RawIncident[] = [];
-  for (const chunk of xml.split('<Log ID="').slice(1)) {
+  // The live feed writes `<Log ID = "…">` (spaces around "=") and uses Windows line endings.
+  for (const chunk of xml.split(/<Log\s+ID\s*=\s*"/).slice(1)) {
     const id = chunk.slice(0, chunk.indexOf('"'));
     const latlon = /^(\d+):(\d+)$/.exec(field(chunk, 'LATLON'));
     if (!id || !latlon) continue;

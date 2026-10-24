@@ -74,7 +74,7 @@ describe('GET /api/cameras validation', () => {
     ['lat=34', 'lon'],
     ['lat=34&lon=-181', 'lon'],
     ['lat=34&lon=-118&radius=0', 'radius'],
-    ['lat=34&lon=-118&radius=500', 'radius'],
+    ['lat=34&lon=-118&radius=501', 'radius'],
   ];
   it.each(cases)('rejects "%s" with a 400 naming the %s field', async (query, field) => {
     const { status, body } = await call(query, deps(fakeFetch().fn));

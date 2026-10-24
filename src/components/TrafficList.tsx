@@ -1,4 +1,5 @@
 import { ageMs, formatAge } from '../lib/age';
+import { alertIcon, kindClass } from '../lib/alertIcons';
 import { classifyRelation, distanceMeters, formatDistance } from '../lib/geo';
 import type { FlowReading, Incident, LatLon, SignMessage } from '../lib/types';
 import { FLOW_LABEL } from './MapView';
@@ -12,7 +13,7 @@ interface Props {
   now: number;
 }
 
-const MAX_ITEMS = 6;
+const MAX_ITEMS = 8;
 
 type Item =
   | { type: 'incident'; item: Incident; distance: number; ahead: boolean | null }
@@ -64,8 +65,8 @@ export function TrafficList({ me, heading, incidents, signs, flow = [], now }: P
           }
           return entry.type === 'incident' ? (
             <li key={entry.item.id} className="traffic-item">
-              <span className={`traffic-icon incident kind-${entry.item.kind.toLowerCase().replace(/\s+/g, '-')}`} aria-hidden="true">
-                !
+              <span className={`traffic-icon incident emoji ${kindClass(entry.item.kind)}`} aria-hidden="true">
+                {alertIcon(entry.item.kind)}
               </span>
               <span className="traffic-text">
                 <strong>{entry.item.kind}</strong>
@@ -73,6 +74,8 @@ export function TrafficList({ me, heading, incidents, signs, flow = [], now }: P
                 <span className="muted">
                   {entry.item.location}
                   {entry.item.startedAt ? ` · ${formatAge(ageMs(entry.item.startedAt, now))}` : ''}
+                  {entry.item.delaySeconds ? ` · +${Math.round(entry.item.delaySeconds / 60)} min delay` : ''}
+                  {` · ${entry.item.source ?? 'CHP'}`}
                 </span>
               </span>
               <span className="traffic-dist">{position}</span>

@@ -169,6 +169,14 @@ describe('GET /api/traffic', () => {
     expect(body.warnings).toContain('CHP incidents unavailable');
   });
 
+  it('tells the map whether live speed tiles are available', async () => {
+    const query = 'http://localhost/api/traffic?lat=34.82&lon=-118.86&radius=25';
+    const on = (await (await handleTrafficRequest(new Request(query), deps(), { tomtomKey: 'k' })).json()) as TrafficResponse;
+    const off = (await (await handleTrafficRequest(new Request(query), deps(), { tomtomKey: '' })).json()) as TrafficResponse;
+    expect(on.speedTiles).toBe(true);
+    expect(off.speedTiles).toBe(false);
+  });
+
   it('validates the location like /api/cameras', async () => {
     const { status, body } = await call('lat=999&lon=0', deps());
     expect(status).toBe(400);

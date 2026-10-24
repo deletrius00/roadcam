@@ -35,6 +35,7 @@ const CAMERAS_KML = `<kml xmlns="http://www.opengis.net/kml/2.2"><Document><Styl
 const ALERTS_KML = `<kml><Document>
 <Placemark id="ID 718186"><name><![CDATA[Two right lanes of northbound I-5 at S 56th St blocked by a collision.]]></name><description><![CDATA[<div>High Impact</div><div>Two right lanes of northbound I-5 at S 56th St blocked by a collision.</div><div></div>]]></description><styleUrl>#HighIncident</styleUrl><Point><coordinates>-122.4510,47.2110</coordinates></Point></Placemark>
 <Placemark id="ID 718187"><name><![CDATA[Up to two general-purpose lanes of westbound SR 522 between I-405 (milepost 11.6) and Campus Way Northeast will be closed nightly.]]></name><description><![CDATA[<div>Low Impact</div>]]></description><styleUrl>#LowConstruction</styleUrl><Point><coordinates>-122.19,47.76</coordinates></Point></Placemark>
+<Placemark id="ID 718189"><name><![CDATA[Work is for the <a href="https://example.com/x">Port of Tacoma project</a>.]]></name><description><![CDATA[x]]></description><styleUrl>#LowIncident</styleUrl><Point><coordinates>-122.6,48.5</coordinates></Point></Placemark>
 <Placemark id="ID 718188"><name><![CDATA[Rest area closed.]]></name><description><![CDATA[x]]></description><styleUrl>#LowRestArea</styleUrl><Point><coordinates>-122.3,47.3</coordinates></Point></Placemark>
 </Document></kml>`;
 
@@ -103,7 +104,8 @@ describe('WSDOT cameras', () => {
 describe('WSDOT alerts and traffic flow', () => {
   it('reads alerts, labels them, and skips rest-area notices', () => {
     const alerts = parseWsdotAlerts(ALERTS_KML);
-    expect(alerts.map((a) => a.kind)).toEqual(['Crash or incident', 'Roadwork']);
+    expect(alerts.map((a) => a.kind)).toEqual(['Crash or incident', 'Roadwork', 'Crash or incident']);
+    expect(alerts[2]!.description).toBe('Low impact: Work is for the Port of Tacoma project.');
     expect(alerts[0]).toMatchObject({
       description: 'High impact: Two right lanes of northbound I-5 at S 56th St blocked by a collision.',
       location: 'I-5',
@@ -132,6 +134,7 @@ describe('Washington end to end', () => {
       if (url === WSDOT_CAMERAS_URL) return new Response(CAMERAS_KML);
       if (url === WSDOT_ALERTS_URL) return new Response(ALERTS_KML);
       if (url === WSDOT_FLOW_URL) return new Response(FLOW_KML);
+      if (url.startsWith('https://api.weather.gov/')) return Response.json({ features: [] });
       if (url.endsWith('.jpg')) return new Response(new Uint8Array([0xff, 0xd8]), { status: 206, headers: { 'last-modified': 'Sat, 24 Oct 2026 06:59:00 GMT' } });
       return new Response('unexpected', { status: 500 });
     }) as typeof fetch,

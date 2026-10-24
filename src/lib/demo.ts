@@ -4,7 +4,7 @@
  * Turn it on with `?demo=1` in the URL.
  */
 import type { Compass } from './facing.js';
-import type { Camera, Incident, LatLon, NearbyCamera, SignMessage } from './types.js';
+import type { Camera, Closure, Incident, LatLon, NearbyCamera, SignMessage, WeatherAlert } from './types.js';
 import { distanceMeters } from './geo.js';
 import { roadAxis } from './roadAxis.js';
 
@@ -111,13 +111,25 @@ export function demoPosition(elapsedMs: number, speedMps = 29): { position: LatL
 export function demoTraffic(now: number): {
   incidents: Array<Omit<Incident, 'distanceMeters'>>;
   signs: Array<Omit<SignMessage, 'distanceMeters'>>;
+  closures: Array<Omit<Closure, 'distanceMeters'>>;
+  weather: WeatherAlert[];
 } {
   const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString();
+  const hoursFromNow = (h: number) => new Date(now + h * 3_600_000).toISOString();
   return {
     incidents: [
       { id: 'demo-inc-1', kind: 'Crash', description: 'Traffic collision, no injuries', location: 'I5 N / Frazier Mountain Park Rd', startedAt: minutesAgo(18), lat: 34.8115, lon: -118.8552 },
       { id: 'demo-inc-2', kind: 'Stalled vehicle', description: 'Disabled vehicle in right lane', location: 'I5 N / Hasley Canyon Rd', startedAt: minutesAgo(6), lat: 34.4842, lon: -118.6219 },
-      { id: 'demo-inc-3', kind: 'Hazard', description: 'Traffic hazard, debris in lanes', location: 'I5 S / Smokey Bear Rd', startedAt: minutesAgo(41), lat: 34.6402, lon: -118.7216 },
+      { id: 'demo-inc-3', kind: 'Debris', description: 'Traffic hazard, debris in lanes', location: 'I5 S / Smokey Bear Rd', startedAt: minutesAgo(41), lat: 34.6402, lon: -118.7216 },
+      { id: 'demo-inc-4', kind: 'Traffic jam', description: 'Stopped traffic', location: 'I-5 northbound · Templin Hwy to Vista del Lago Rd', startedAt: minutesAgo(12), source: 'TomTom', delaySeconds: 420, lat: 34.6195, lon: -118.7146 },
+    ],
+    closures: [
+      { id: 'demo-lcs-1', route: 'I-5', direction: 'Northbound', what: 'Lane closure', facility: 'Highway', work: 'Shoulder work', place: 'Parker Rd to Lake Hughes Rd, Castaic', lanes: 'Lanes 4 of 4', startsAt: minutesAgo(200), endsAt: hoursFromNow(3), status: 'active', source: 'Caltrans', lat: 34.5012, lon: -118.6303 },
+      { id: 'demo-lcs-2', route: 'I-5', direction: 'Southbound', what: 'Full closure', facility: 'Off ramp', work: 'Utility work', place: 'Templin Hwy, Castaic', lanes: 'All lanes', startsAt: hoursFromNow(6), endsAt: hoursFromNow(14), status: 'upcoming', source: 'Caltrans', lat: 34.6052, lon: -118.7056 },
+      { id: 'demo-lcs-3', route: 'I-5', direction: 'Northbound', what: 'Full closure', facility: 'Highway', work: 'Pavement work', place: 'Grapevine to Fort Tejon, Lebec', lanes: 'All lanes', startsAt: hoursFromNow(55), endsAt: hoursFromNow(63), status: 'upcoming', source: 'Caltrans', lat: 34.8668, lon: -118.8936 },
+    ],
+    weather: [
+      { id: 'demo-nws-1', event: 'Wind Advisory', severity: 'Moderate', headline: 'Wind Advisory until 9 PM: gusts to 50 mph over the Grapevine', area: 'Interstate 5 Corridor', startsAt: minutesAgo(120), endsAt: hoursFromNow(8) },
     ],
     signs: [
       { id: 'demo-cms-1', route: 'I-5', direction: 'North', lines: ['GUSTY WINDS', 'OVER SUMMIT', 'USE CAUTION'], postedAt: minutesAgo(95), lat: 34.5871, lon: -118.6731 },

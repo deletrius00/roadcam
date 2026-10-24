@@ -6,6 +6,8 @@ import {
   clampZoom,
   metersPerPixel,
   project,
+  speedTileUrl,
+  SPEED_TILE_REFRESH_MS,
   tileUrl,
   unproject,
   visibleTiles,
@@ -105,5 +107,22 @@ describe('wedgePath', () => {
 
   it('uses the large-arc flag for slices over 180°', () => {
     expect(wedgePath(0, 0, 10, 0, 270)).toContain(' 0 1 1 ');
+  });
+});
+
+describe('speedTileUrl', () => {
+  const tile = { key: '12/702/1635', z: 12, x: 702, y: 1635, left: 0, top: 0 };
+
+  it('points at our own server, never at TomTom (the key stays secret)', () => {
+    const url = speedTileUrl(tile, 0);
+    expect(url).toMatch(/^\/api\/speed-tile\?z=12&x=702&y=1635&t=\d+$/);
+    expect(url).not.toContain('tomtom');
+    expect(url).not.toContain('key=');
+  });
+
+  it('keeps the same URL within 5 minutes and changes it after', () => {
+    const start = 100 * SPEED_TILE_REFRESH_MS;
+    expect(speedTileUrl(tile, start)).toBe(speedTileUrl(tile, start + SPEED_TILE_REFRESH_MS - 1));
+    expect(speedTileUrl(tile, start)).not.toBe(speedTileUrl(tile, start + SPEED_TILE_REFRESH_MS));
   });
 });

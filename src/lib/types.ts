@@ -69,6 +69,50 @@ export interface Incident extends LatLon {
   /** When CHP logged it (ISO 8601), if known. */
   startedAt: string | null;
   distanceMeters: number;
+  /** Who reported it: "CHP", "WSDOT" or "TomTom". Missing on older responses (= CHP). */
+  source?: string;
+  /** Extra time it's adding to the trip, in seconds, when known (TomTom jams). */
+  delaySeconds?: number | null;
+}
+
+/** A planned or active highway closure (lanes, ramps or the whole road). */
+export interface Closure extends LatLon {
+  id: string;
+  /** "I-5", "SR-14", "US-101". */
+  route: string;
+  /** "Northbound", or "" when unknown. */
+  direction: string;
+  /** "Full closure", "Lane closure", "One-way traffic"... */
+  what: string;
+  /** "Mainline" (the freeway itself), "On ramp", "Off ramp", "Connector"... */
+  facility: string;
+  /** Why: "Pavement work", "Bridge construction"... */
+  work: string;
+  /** Plain-English stretch, e.g. "Avenue H to Avenue F, Lancaster". */
+  place: string;
+  /** "1, 2 of 4" or "All", when known. */
+  lanes: string;
+  /** When it starts (ISO 8601), or null when the source only describes it in words (WSDOT). */
+  startsAt: string | null;
+  endsAt: string | null;
+  /** 'active' = happening now, 'upcoming' = scheduled for later. */
+  status: 'active' | 'upcoming';
+  source: string;
+  distanceMeters: number;
+}
+
+/** A National Weather Service alert for where you are (fog, flood, wind, snow...). */
+export interface WeatherAlert {
+  id: string;
+  /** "Dense Fog Advisory", "Flood Warning"... */
+  event: string;
+  /** "Minor", "Moderate", "Severe", "Extreme" or "Unknown". */
+  severity: string;
+  headline: string;
+  /** Which areas it covers, as the NWS wrote it. */
+  area: string;
+  startsAt: string | null;
+  endsAt: string | null;
 }
 
 /** What a Caltrans overhead message sign currently says. */
@@ -102,5 +146,14 @@ export interface TrafficResponse {
   signs: SignMessage[];
   /** Live congestion at road sensors (Washington). Empty where no sensors exist. */
   flow: FlowReading[];
+  /**
+   * True when the server can serve live traffic-speed map tiles (/api/speed-tile).
+   * Those color the roads everywhere, including California, which has no free sensor feed.
+   */
+  speedTiles?: boolean;
+  /** Lane, ramp and full road closures, happening now or in the next 7 days, closest first. */
+  closures?: Closure[];
+  /** Weather alerts where you are. */
+  weather?: WeatherAlert[];
   warnings: string[];
 }

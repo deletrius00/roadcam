@@ -10,7 +10,8 @@ import { useCameras } from './hooks/useCameras';
 import { useLocation, type LocationMode } from './hooks/useLocation';
 import { useNow } from './hooks/useNow';
 import { useTraffic } from './hooks/useTraffic';
-import { classifyRelation, distanceMeters } from './lib/geo';
+import { ClosuresList } from './components/ClosuresList';
+import { classifyRelation, distanceMeters, formatDistance } from './lib/geo';
 import { splitNextCamera } from './lib/nextCamera';
 import { formatCountdown, secondsUntilRefresh } from './lib/refresh';
 import { filterToRoute } from './lib/onMyRoad';
@@ -64,6 +65,8 @@ export function App() {
   const [showMap, setShowMap] = useState(initialShowMap);
   // "On my road": only show cameras on the highway we think you're on. Off by default.
   const [onMyRoad, setOnMyRoad] = useState(false);
+  // "Search this area": a spot on the map to search around instead of where you are. null = around you.
+  const [searchAt, setSearchAt] = useState<LatLon | null>(null);
   const toggleMap = () =>
     setShowMap((v) => {
       try {
@@ -77,8 +80,9 @@ export function App() {
   // Bumped on each "Use my location" tap, so you can retry after denying permission.
   const [attempt, setAttempt] = useState(0);
   const location = useLocation(mode, attempt, FIXED_AT);
-  const cameras = useCameras(location.position, radiusMiles, mode === 'demo');
-  const traffic = useTraffic(location.position, radiusMiles, mode === 'demo');
+  const searchCenter = searchAt ?? location.position;
+  const cameras = useCameras(searchCenter, radiusMiles, mode === 'demo');
+  const traffic = useTraffic(searchCenter, radiusMiles, mode === 'demo');
   const now = useNow(1000);
   const closeLightbox = useCallback(() => setOpen(null), []);
 
@@ -193,6 +197,15 @@ export function App() {
         <p className="banner banner-warn">Some camera data is missing right now: {cameras.data.warnings.join(', ')}.</p>
       ) : null}
 
+      {searchAt && location.position && (
+        <p className="search-away" role="status">
+          Showing cameras and traffic around the spot you picked on the map, {formatDistance(distanceMeters(location.position, searchAt))} from you.{' '}
+          <button type="button" className="ghost" onClick={() => setSearchAt(null)}>
+            Back to me
+          </button>
+        </p>
+      )}
+
       {showMap && location.position && (
         <div className="map-wrap">
           <MapView
@@ -202,6 +215,10 @@ export function App() {
             incidents={traffic.data?.incidents ?? []}
             signs={traffic.data?.signs ?? []}
             flow={traffic.data?.flow ?? []}
+            speedTiles={traffic.data?.speedTiles ?? false}
+            closures={traffic.data?.closures ?? []}
+            searchCenter={searchAt}
+            onSearchHere={setSearchAt}
             radiusMiles={radiusMiles}
             now={now}
             refreshKey={refreshKey}
@@ -219,6 +236,10 @@ export function App() {
           flow={traffic.data.flow ?? []}
           now={now}
         />
+      )}
+
+      {location.position && traffic.data && (
+        <ClosuresList me={location.position} closures={traffic.data.closures ?? []} weather={traffic.data.weather ?? []} now={now} />
       )}
 
       {shown.length > 0 && (

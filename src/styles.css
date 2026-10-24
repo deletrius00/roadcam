@@ -629,6 +629,16 @@ select {
 .map.dark .map-tile {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
 }
+/* Traffic-speed overlay: keep its green/orange/red as they are, in both themes. */
+.map-speed {
+  pointer-events: none;
+}
+.map.dark .map-speed .map-tile {
+  filter: none;
+}
+.map-speed .map-tile.loaded {
+  opacity: 0.9;
+}
 .map-radius {
   fill: none;
   stroke: var(--muted);
@@ -1168,4 +1178,121 @@ select {
   height: 22px;
   border-radius: 50%;
   margin: 0 9px;
+}
+
+/* ---------- Alert pins with pictures (crash, fog, roadwork...) ---------- */
+.pin-alert {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  border: 2px solid #ff5d5d;
+  font-size: 15px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+.pin-alert.kind-roadwork,
+.pin-alert.kind-hazard,
+.pin-alert.kind-debris,
+.pin-alert.kind-stalled-vehicle,
+.pin-alert.kind-traffic-jam,
+.pin-alert.kind-fog,
+.pin-alert.kind-rain,
+.pin-alert.kind-wind,
+.pin-alert.kind-weather,
+.pin-alert.kind-ice,
+.pin-alert.kind-flooding {
+  border-color: #f5a524;
+}
+.pin-alert.kind-police-activity {
+  border-color: #3b82f6;
+}
+.pin-closure {
+  border-color: #f97316;
+  border-radius: 6px;
+}
+/* Upcoming closures: faded with a dashed edge, so "now" stands out. */
+.pin-closure.upcoming {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.key-upcoming {
+  border: 2px dashed #f97316;
+  border-radius: 3px;
+  background: transparent;
+}
+.map-popup-icon.pin-alert {
+  position: static;
+  flex: none;
+}
+.traffic-icon.emoji {
+  background: transparent;
+  font-size: 1.25rem;
+}
+
+/* "Search this area" pill at the top of the map. */
+.map-search-here {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.search-away {
+  margin: 12px 16px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-size: 0.9rem;
+}
+.search-away button {
+  margin-left: 6px;
+}
+
+/* Closures list: Now / Upcoming switch. */
+.closures h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.closures .tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.closures .tabs button {
+  border: 1px solid var(--border, color-mix(in srgb, var(--muted) 40%, transparent));
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.closures .tabs button.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.closures .empty {
+  margin: 8px 0 0;
+}
+.traffic-item.closure.upcoming .traffic-icon {
+  opacity: 0.7;
+}
+.weather .severity-severe strong,
+.weather .severity-extreme strong {
+  color: #ff5d5d;
 }

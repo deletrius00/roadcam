@@ -16,6 +16,8 @@ interface Props {
   onOpen: (camera: NearbyCamera) => void;
   /** Your direction of travel, to mark which lanes in the picture are yours. */
   heading: number | null;
+  /** "hero" is the big "Next camera" card shown above the lists; "default" is a normal grid card. */
+  variant?: 'default' | 'hero';
 }
 
 export function withCacheBust(url: string, key: number): string {
@@ -23,14 +25,16 @@ export function withCacheBust(url: string, key: number): string {
   return `${url}${url.includes('?') ? '&' : '?'}t=${key}`;
 }
 
-export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen, heading }: Props) {
+export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen, heading, variant = 'default' }: Props) {
   const [failed, setFailed] = useState(false);
   const age = ageMs(camera.imageTakenAt, now);
   const fresh = freshness(age);
   const approximate = camera.imageTimeSource === 'record';
+  // The hero is the first thing you look at, so its image loads right away instead of lazily.
+  const hero = variant === 'hero';
 
   return (
-    <article className={`card ${camera.unavailable ? 'offline' : ''}`}>
+    <article className={`card ${hero ? 'card-hero' : ''} ${camera.unavailable ? 'offline' : ''}`}>
       <button
         type="button"
         className="card-media"
@@ -43,7 +47,7 @@ export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen, he
           <img
             src={withCacheBust(camera.imageUrl, refreshKey)}
             alt={`Latest view from ${friendlyCameraName(camera.name)}`}
-            loading="lazy"
+            loading={hero ? 'eager' : 'lazy'}
             onError={() => setFailed(true)}
             onLoad={() => setFailed(false)}
           />
@@ -64,6 +68,7 @@ export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen, he
         <span className="badge distance">{formatDistance(distanceMeters)}</span>
       </button>
       <div className="card-body">
+        {hero && <p className="card-eyebrow">Next camera</p>}
         <h3 className="card-title" title={`Caltrans name: ${camera.name}`}>
           {friendlyCameraName(camera.name)}
         </h3>

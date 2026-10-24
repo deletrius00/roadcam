@@ -13,6 +13,7 @@ import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
 import { splitNextCamera } from './lib/nextCamera';
 import { formatCountdown, secondsUntilRefresh } from './lib/refresh';
+import { filterToRoute } from './lib/onMyRoad';
 import { guessCurrentRoute } from './lib/route';
 import { loadRadiusMiles, saveRadiusMiles } from './lib/settings';
 import type { LatLon, NearbyCamera, Relation } from './lib/types';
@@ -61,6 +62,8 @@ export function App() {
   };
   const [open, setOpen] = useState<NearbyCamera | null>(null);
   const [showMap, setShowMap] = useState(initialShowMap);
+  // "On my road": only show cameras on the highway we think you're on. Off by default.
+  const [onMyRoad, setOnMyRoad] = useState(false);
   const toggleMap = () =>
     setShowMap((v) => {
       try {
@@ -111,6 +114,10 @@ export function App() {
     [cameras.data, location.position],
   );
 
+  // The cameras we actually show (lists and map pins). With "On my road" on, only that highway's.
+  // If the route guess drops out, this shows everything again rather than an empty screen.
+  const shown = useMemo(() => filterToRoute(placed, route?.route ?? null, onMyRoad), [placed, route, onMyRoad]);
+
   if (mode === 'off' || location.status === 'denied' || location.status === 'unavailable') {
     return (
       <StartScreen
@@ -124,9 +131,9 @@ export function App() {
     );
   }
 
-  const by = (r: Placed['relation']) => placed.filter((p) => p.relation === r).slice(0, MAX_PER_SECTION);
+  const by = (r: Placed['relation']) => shown.filter((p) => p.relation === r).slice(0, MAX_PER_SECTION);
   // The closest camera ahead gets its own big card, so it's left out of the Ahead list below.
-  const { next: nextCamera, rest: aheadRest } = splitNextCamera(placed.filter((p) => p.relation === 'ahead'));
+  const { next: nextCamera, rest: aheadRest } = splitNextCamera(shown.filter((p) => p.relation === 'ahead'));
   const ahead = aheadRest.slice(0, MAX_PER_SECTION);
   const refreshKey = cameras.fetchedAt ?? 0;
   const renderCard = ({ camera, distance }: Placed, variant: 'default' | 'hero' = 'default') => (
@@ -142,7 +149,10 @@ export function App() {
     />
   );
   const renderCards = (list: Placed[]) => list.map((p) => renderCard(p));
-  const offlineCount = placed.filter((p) => p.camera.unavailable).length;
+  const offlineCount = shown.filter((p) => p.camera.unavailable).length;
+
+  // "on I-5" in the empty-list text while the filter is narrowing things down.
+  const onRoadText = onMyRoad && route ? ` on ${route.route}` : '';
 
   const headingKnown = location.heading !== null;
   const waiting = !cameras.data && (cameras.loading || location.status === 'locating');
@@ -166,6 +176,8 @@ export function App() {
           onRefresh={refreshNow}
           refreshing={refreshing}
           countdown={countdown}
+          onMyRoad={onMyRoad}
+          onToggleOnMyRoad={() => setOnMyRoad((v) => !v)}
           onStop={() => setMode('off')}
         />
       </header>
@@ -186,7 +198,7 @@ export function App() {
           <MapView
             me={location.position}
             heading={location.heading}
-            cameras={placed}
+            cameras={shown}
             incidents={traffic.data?.incidents ?? []}
             signs={traffic.data?.signs ?? []}
             flow={traffic.data?.flow ?? []}
@@ -209,12 +221,12 @@ export function App() {
         />
       )}
 
-      {placed.length > 0 && (
+      {shown.length > 0 && (
         <p className="tip">
           {offlineCount > 0 && (
             <>
               <strong>
-                {offlineCount} of {placed.length} cameras are offline
+                {offlineCount} of {shown.length} cameras are offline
               </strong>{' '}
               (Caltrans shows “Temporarily Unavailable”); they’re listed last.{' '}
             </>
@@ -242,11 +254,11 @@ export function App() {
             title="Ahead"
             icon="▲"
             count={ahead.length}
-            emptyText={nextCamera ? `No other cameras ahead within ${radiusMiles} miles.` : `No cameras ahead within ${radiusMiles} miles.`}
+            emptyText={nextCamera ? `No other cameras ahead${onRoadText} within ${radiusMiles} miles.` : `No cameras ahead${onRoadText} within ${radiusMiles} miles.`}
           >
             {renderCards(ahead)}
           </CameraSection>
-          <CameraSection title="Behind" icon="▼" count={by('behind').length} emptyText={`No cameras behind within ${radiusMiles} miles.`}>
+          <CameraSection title="Behind" icon="▼" count={by('behind').length} emptyText={`No cameras behind${onRoadText} within ${radiusMiles} miles.`}>
             {renderCards(by('behind'))}
           </CameraSection>
           {by('side').length > 0 && (
@@ -259,7 +271,7 @@ export function App() {
       ) : (
         <main className="columns single">
           <p className="hint">Start moving and RoadCam will split these into ahead and behind.</p>
-          <CameraSection title="Nearby" icon="●" count={by('nearby').length} emptyText={`No cameras within ${radiusMiles} miles. Try a bigger radius.`}>
+          <CameraSection title="Nearby" icon="●" count={by('nearby').length} emptyText={`No cameras${onRoadText} within ${radiusMiles} miles. Try a bigger radius.`}>
             {renderCards(by('nearby'))}
           </CameraSection>
         </main>

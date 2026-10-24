@@ -18,10 +18,27 @@ interface Props {
   refreshing: boolean;
   /** Small muted text next to the button, e.g. "next in 42 s". */
   countdown: string;
+  /** "On my road" filter: only show cameras on `route`. */
+  onMyRoad: boolean;
+  onToggleOnMyRoad: () => void;
   onStop: () => void;
 }
 
-export function StatusBar({ location, demo, route, radiusMiles, onRadiusChange, showMap, onToggleMap, onRefresh, refreshing, countdown, onStop }: Props) {
+export function StatusBar({
+  location,
+  demo,
+  route,
+  radiusMiles,
+  onRadiusChange,
+  showMap,
+  onToggleMap,
+  onRefresh,
+  refreshing,
+  countdown,
+  onMyRoad,
+  onToggleOnMyRoad,
+  onStop,
+}: Props) {
   const { heading, speed, status } = location;
   const mph = speed !== null ? Math.round(speed * 2.23694) : null;
 
@@ -45,6 +62,18 @@ export function StatusBar({ location, demo, route, radiusMiles, onRadiusChange, 
           </svg>
           {route ? `On ${route.route}` : 'Highway —'}
         </span>
+        {/* Only offered when we have a highway to filter to. */}
+        {route && (
+          <button
+            type="button"
+            className={`ghost ${onMyRoad ? 'pressed' : ''}`}
+            onClick={onToggleOnMyRoad}
+            aria-pressed={onMyRoad}
+            title={onMyRoad ? `Showing only ${route.route} cameras` : `Show only ${route.route} cameras`}
+          >
+            On my road
+          </button>
+        )}
         <span className="heading" title="Direction of travel">
           <svg
             viewBox="0 0 24 24"

@@ -1058,3 +1058,51 @@ select {
   color: var(--text);
   border: 1px solid var(--accent);
 }
+
+/* ---------- Live congestion (WSDOT sensors) ---------- */
+.flow-WideOpen { background: #2fbf71; }
+.flow-Moderate { background: #f5c542; }
+.flow-Heavy { background: #ff8a1f; }
+.flow-StopAndGo { background: #e53935; }
+.map-flow {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.map-flow.flow-Heavy,
+.map-flow.flow-StopAndGo {
+  width: 14px;
+  height: 14px;
+  z-index: 1;
+}
+.map-flow.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.map-legend .key + .key {
+  margin-left: -3px;
+}
+.traffic-icon.flow-WideOpen,
+.traffic-icon.flow-Moderate,
+.traffic-icon.flow-Heavy,
+.traffic-icon.flow-StopAndGo {
+  width: 18px;
+  height: 18px;
+  margin: 6px;
+  border-radius: 50%;
+}
+.map-popup-icon.flow-WideOpen,
+.map-popup-icon.flow-Moderate,
+.map-popup-icon.flow-Heavy,
+.map-popup-icon.flow-StopAndGo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  margin: 0 9px;
+}

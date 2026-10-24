@@ -12,6 +12,8 @@ import { fetchImageInfo, mapWithLimit } from './imageTime.js';
 import { demoNearby } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
 import { roadAxis } from '../src/lib/roadAxis.js';
+import { regionsNear } from './regions.js';
+import { parseWsdotCameras, WSDOT_CAMERAS_URL } from './wsdot.js';
 import type { Camera, CamerasResponse, LatLon, NearbyCamera } from '../src/lib/types.js';
 
 export const DEFAULT_RADIUS_MILES = 25;
@@ -33,6 +35,7 @@ const feedCache = new Map<number, { loadedAt: number; cameras: Camera[] }>();
 
 export function clearFeedCache(): void {
   feedCache.clear();
+  wsdotCache = null;
 }
 
 export function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -77,6 +80,17 @@ export function parseArea(params: URLSearchParams): { center: LatLon; radiusMile
   return { center: { lat, lon }, radiusMiles };
 }
 
+let wsdotCache: { loadedAt: number; cameras: Camera[] } | null = null;
+
+async function loadWsdot(deps: HandlerDeps): Promise<Camera[]> {
+  if (wsdotCache && deps.now() - wsdotCache.loadedAt < FEED_CACHE_TTL_MS) return wsdotCache.cameras;
+  const response = await deps.fetch(WSDOT_CAMERAS_URL, { signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const cameras = parseWsdotCameras(await response.text());
+  wsdotCache = { loadedAt: deps.now(), cameras };
+  return cameras;
+}
+
 export async function handleCamerasRequest(
   request: Request,
   deps: HandlerDeps = defaultDeps,
@@ -100,13 +114,20 @@ export async function handleCamerasRequest(
     return json(body, 200, { 'cache-control': 'no-store' });
   }
 
-  // Load every district in parallel; one broken district shouldn't break the app.
+  // Load the feeds for the state(s) the search reaches, in parallel;
+  // one broken feed shouldn't break the app.
+  const regions = regionsNear(center, radiusMeters);
+  const tasks: Array<{ label: string; load: Promise<Camera[]> }> = [];
+  if (regions.includes('california')) {
+    for (const d of CALTRANS_DISTRICTS) tasks.push({ label: `Caltrans district ${d}`, load: loadDistrict(d, deps) });
+  }
+  if (regions.includes('washington')) tasks.push({ label: 'WSDOT cameras', load: loadWsdot(deps) });
   const warnings: string[] = [];
-  const results = await Promise.allSettled(CALTRANS_DISTRICTS.map((d) => loadDistrict(d, deps)));
+  const results = await Promise.allSettled(tasks.map((t) => t.load));
   const all: Camera[] = [];
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') all.push(...result.value);
-    else warnings.push(`Caltrans district ${CALTRANS_DISTRICTS[i]} unavailable`);
+    else warnings.push(`${tasks[i]!.label} unavailable`);
   });
   if (all.length === 0 && warnings.length > 0) {
     return json({ error: 'Camera data is temporarily unavailable', warnings }, 502);
@@ -125,7 +146,8 @@ export async function handleCamerasRequest(
       distanceMeters: distance,
       imageTakenAt: lastModified ?? camera.recordedAt,
       imageTimeSource: lastModified ? 'last-modified' : camera.recordedAt ? 'record' : 'unknown',
-      unavailable,
+      // The "Temporarily Unavailable" check was validated on Caltrans images only.
+      unavailable: camera.source === 'caltrans' && unavailable,
       roadAxisDeg: camera.facing ? null : roadAxis(camera, all),
     };
   });

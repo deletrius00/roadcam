@@ -25,7 +25,7 @@ export function StatusBar({ location, demo, route, radiusMiles, onRadiusChange, 
       <div className="status-left">
         <span className={`live ${status === 'tracking' ? 'on' : ''}`}>
           <span className="dot" aria-hidden="true" />
-          {demo ? 'Demo drive' : status === 'tracking' ? 'Live GPS' : 'Locating…'}
+          {demo ? 'Demo drive' : location.accuracyMeters === 0 ? 'Pinned spot' : status === 'tracking' ? 'Live GPS' : 'Locating…'}
         </span>
         <span
           className={`road ${route ? 'known' : ''}`}

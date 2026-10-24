@@ -32,7 +32,7 @@ export function StartScreen({ onStartLive, onStartDemo, error }: Props) {
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       <p className="fine">
-        Covers California state highways (Caltrans cameras). Your location stays in your browser
+        Covers California (Caltrans) and Washington (WSDOT) state highways. Your location stays in your browser
         and is only used to find nearby cameras. <strong>Passengers only — never use while driving.</strong>
       </p>
     </main>

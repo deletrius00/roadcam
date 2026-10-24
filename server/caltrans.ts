@@ -134,6 +134,7 @@ export function parseCaltransFeed(json: unknown): Camera[] {
       updateFrequencyMin: toNumber(c.imageData?.static?.currentImageUpdateFrequency),
       recordedAt: pacificToIso(c.recordTimestamp?.recordDate, c.recordTimestamp?.recordTime),
       facing: parseFacing(c.location?.locationName, c.imageData?.imageDescription),
+      source: 'caltrans',
     });
   }
   return cameras;

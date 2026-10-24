@@ -12,7 +12,7 @@ import { useNow } from './hooks/useNow';
 import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
 import { guessCurrentRoute } from './lib/route';
-import type { NearbyCamera, Relation } from './lib/types';
+import type { LatLon, NearbyCamera, Relation } from './lib/types';
 
 const MAX_PER_SECTION = 12;
 
@@ -26,7 +26,19 @@ function initialShowMap(): boolean {
   }
 }
 
+/** `?at=47.2529,-122.4443` pins the app to a spot (handy for previewing Tacoma from anywhere). */
+function fixedSpot(): LatLon | null {
+  const m = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(new URLSearchParams(window.location.search).get('at') ?? '');
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lon = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon } : null;
+}
+
+const FIXED_AT = fixedSpot();
+
 function initialMode(): LocationMode {
+  if (FIXED_AT) return 'fixed';
   return new URLSearchParams(window.location.search).get('demo') === '1' ? 'demo' : 'off';
 }
 
@@ -53,7 +65,7 @@ export function App() {
 
   // Bumped on each "Use my location" tap, so you can retry after denying permission.
   const [attempt, setAttempt] = useState(0);
-  const location = useLocation(mode, attempt);
+  const location = useLocation(mode, attempt, FIXED_AT);
   const cameras = useCameras(location.position, radiusMiles, mode === 'demo');
   const traffic = useTraffic(location.position, radiusMiles, mode === 'demo');
   const now = useNow(1000);
@@ -131,6 +143,9 @@ export function App() {
         />
       </header>
 
+      {mode === 'fixed' && (
+        <p className="banner">Preview mode: showing a pinned spot from the link, not your GPS.</p>
+      )}
       {mode === 'demo' && (
         <p className="banner">Demo mode: a simulated drive north on I-5 with sample images.</p>
       )}
@@ -147,6 +162,7 @@ export function App() {
             cameras={placed}
             incidents={traffic?.incidents ?? []}
             signs={traffic?.signs ?? []}
+            flow={traffic?.flow ?? []}
             radiusMiles={radiusMiles}
             now={now}
             refreshKey={refreshKey}
@@ -161,6 +177,7 @@ export function App() {
           heading={location.heading}
           incidents={traffic.incidents}
           signs={traffic.signs}
+          flow={traffic.flow ?? []}
           now={now}
         />
       )}

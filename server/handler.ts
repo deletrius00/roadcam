@@ -7,7 +7,8 @@
  * Deciding "ahead" vs "behind" happens in the browser, because your heading
  * changes every second while the list of nearby cameras changes slowly.
  */
-import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltrans.js';
+import { caltransFeedUrl, parseCaltransFeed } from './caltrans.js';
+import { districtsNear } from './districts.js';
 import { fetchImageInfo, mapWithLimit } from './imageTime.js';
 import { demoNearby } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
@@ -119,7 +120,8 @@ export async function handleCamerasRequest(
   const regions = regionsNear(center, radiusMeters);
   const tasks: Array<{ label: string; load: Promise<Camera[]> }> = [];
   if (regions.includes('california')) {
-    for (const d of CALTRANS_DISTRICTS) tasks.push({ label: `Caltrans district ${d}`, load: loadDistrict(d, deps) });
+    // Only the Caltrans districts the search circle reaches (usually 1–3 of the 12).
+    for (const d of districtsNear(center, radiusMeters)) tasks.push({ label: `Caltrans district ${d}`, load: loadDistrict(d, deps) });
   }
   if (regions.includes('washington')) tasks.push({ label: 'WSDOT cameras', load: loadWsdot(deps) });
   const warnings: string[] = [];

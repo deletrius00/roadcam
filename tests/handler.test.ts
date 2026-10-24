@@ -1,12 +1,24 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { districtsNear } from '../server/districts';
 import { clearFeedCache, handleCamerasRequest, type HandlerDeps } from '../server/handler';
 import { clearImageTimeCache } from '../server/imageTime';
+import { METERS_PER_MILE } from '../src/lib/geo';
 import type { CamerasResponse } from '../src/lib/types';
 import sample from './fixtures/caltrans-sample.json';
 import jpegs from './fixtures/jpeg-samples.json';
 
 const NOW = Date.parse('2026-10-23T22:00:00Z');
 const NEAR_TEMPLIN = 'lat=34.55&lon=-118.64';
+const TEMPLIN = { lat: 34.55, lon: -118.64 };
+const CENTRAL_LA = 'lat=34.05&lon=-118.25';
+
+/** The district numbers whose feeds were downloaded, e.g. [7, 8, 12]. */
+function fetchedDistricts(calls: string[]): number[] {
+  return calls.flatMap((c) => {
+    const m = /cctvStatusD(\d{2})\.json$/.exec(c);
+    return m ? [Number(m[1])] : [];
+  });
+}
 
 /**
  * A fake `fetch` so tests never touch the real internet.
@@ -115,19 +127,38 @@ describe('GET /api/cameras results', () => {
   });
 
   it('still works when some districts are down, and says which', async () => {
-    const { status, body } = await call(NEAR_TEMPLIN, deps(fakeFetch({ failDistricts: [3, 11] }).fn));
+    // Templin is in district 7, near the edge of district 6. Districts 3 and 11 are far
+    // away, so they are never downloaded and never show up in the warnings.
+    const { status, body } = await call(NEAR_TEMPLIN, deps(fakeFetch({ failDistricts: [3, 6, 11] }).fn));
     expect(status).toBe(200);
     expect(body.cameras.length).toBeGreaterThan(0);
-    expect(body.warnings).toEqual([
-      'Caltrans district 3 unavailable',
-      'Caltrans district 11 unavailable',
-    ]);
+    expect(body.warnings).toEqual(['Caltrans district 6 unavailable']);
   });
 
-  it('returns 502 when every district is down', async () => {
-    const all = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-    const { status } = await call(NEAR_TEMPLIN, deps(fakeFetch({ failDistricts: all }).fn));
+  it('returns 502 when every district the search needs is down', async () => {
+    const needed = districtsNear(TEMPLIN, 25 * METERS_PER_MILE);
+    expect(needed).toContain(7);
+    const { status, body } = await call(NEAR_TEMPLIN, deps(fakeFetch({ failDistricts: needed }).fn));
     expect(status).toBe(502);
+    expect(body.warnings).toEqual(needed.map((d) => `Caltrans district ${d} unavailable`));
+  });
+
+  it('only downloads the districts near the search, not all 12', async () => {
+    const fake = fakeFetch();
+    await call(CENTRAL_LA, deps(fake.fn));
+    const fetched = fetchedDistricts(fake.calls);
+    expect(fetched).toContain(7);
+    expect(fetched).not.toContain(1);
+    expect(fetched).not.toContain(2);
+    expect(fetched.length).toBeLessThanOrEqual(3);
+  });
+
+  it('downloads exactly the districts districtsNear picks', async () => {
+    const fake = fakeFetch();
+    await call(`${NEAR_TEMPLIN}&radius=50`, deps(fake.fn));
+    expect(fetchedDistricts(fake.calls).sort((a, b) => a - b)).toEqual(
+      districtsNear(TEMPLIN, 50 * METERS_PER_MILE),
+    );
   });
 
   it('caches district feeds between requests', async () => {

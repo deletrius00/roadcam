@@ -6,9 +6,12 @@
  * makes a cold start faster.
  *
  * The boxes below are rough outlines of each district, taken from the published
- * Caltrans district map (which counties belong to which district). They could not be
- * derived from the live feeds when this was written, so each box is padded by 0.25°
- * on every side to be safe: a camera just over a district line is still found.
+ * Caltrans district map (which counties belong to which district), then widened where
+ * the live feeds showed cameras outside them (checked against all 3,605 live cameras on
+ * Oct 24, 2026: District 9 runs south to Mojave on SR-14/SR-58, District 10 reaches
+ * further west). Each box is also padded by 0.25° on every side to be safe: a camera
+ * just over a district line is still found. tests/districts.test.ts checks every
+ * district's live camera spread fits inside its box.
  */
 import { CALTRANS_DISTRICTS } from './caltrans.js';
 import { distanceMeters } from '../src/lib/geo.js';
@@ -37,17 +40,17 @@ const RAW_DISTRICT_BOXES: Record<CaltransDistrict, Box> = {
   // Bay Area: Alameda, Contra Costa, Marin, Napa, San Francisco, San Mateo, Santa Clara, Solano, Sonoma
   4: { minLat: 36.89, maxLat: 38.86, minLon: -123.53, maxLon: -121.2 },
   // Central Coast: Santa Cruz, San Benito, Monterey, San Luis Obispo, Santa Barbara
-  5: { minLat: 34.4, maxLat: 37.29, minLon: -122.32, maxLon: -119.44 },
+  5: { minLat: 34.38, maxLat: 37.29, minLon: -122.32, maxLon: -119.44 },
   // Fresno, Kern, Kings, Madera, Tulare
   6: { minLat: 34.79, maxLat: 37.78, minLon: -120.92, maxLon: -117.62 },
   // Los Angeles, Ventura
   7: { minLat: 33.7, maxLat: 34.9, minLon: -119.48, maxLon: -117.65 },
   // San Bernardino, Riverside
   8: { minLat: 33.43, maxLat: 35.81, minLon: -117.8, maxLon: -114.13 },
-  // Inyo, Mono
-  9: { minLat: 35.79, maxLat: 38.71, minLon: -119.65, maxLon: -115.65 },
+  // Inyo, Mono, plus eastern Kern (Mojave, Tehachapi) on SR-14 and SR-58
+  9: { minLat: 34.9, maxLat: 38.71, minLon: -119.65, maxLon: -115.65 },
   // Stockton/Modesto: San Joaquin, Stanislaus, Merced, Mariposa, Tuolumne, Calaveras, Amador, Alpine
-  10: { minLat: 36.74, maxLat: 38.93, minLon: -121.58, maxLon: -119.2 },
+  10: { minLat: 36.74, maxLat: 38.93, minLon: -121.7, maxLon: -119.2 },
   // San Diego, Imperial
   11: { minLat: 32.53, maxLat: 33.51, minLon: -117.6, maxLon: -114.46 },
   // Orange

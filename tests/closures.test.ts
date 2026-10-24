@@ -200,6 +200,12 @@ describe('WSDOT roadwork as closures', () => {
     expect(wsdotAlertToClosure(alert('Road closure', 'High impact: SR 410 is closed at Crystal Mountain Blvd.'))?.status).toBe('active');
   });
 
+  it('treats long-running work that "will remain" as happening now, and strips web links', () => {
+    const text =
+      'Low impact: The right lane of northbound I-5 is closed from East 28th Street to 20th Street East. The lane closure will remain in place through August 2027.';
+    expect(wsdotAlertToClosure(alert('Roadwork', text))?.status).toBe('active');
+  });
+
   it('leaves crashes and hazards alone', () => {
     expect(wsdotAlertToClosure(alert('Crash or incident', 'Collision'))).toBeNull();
   });

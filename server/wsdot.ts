@@ -132,7 +132,8 @@ export function parseWsdotAlerts(kml: string): Array<Omit<Incident, 'distanceMet
     const { impact, category } = splitStyle(p.style);
     const kind = wsdotAlertKind(category);
     if (!kind) continue;
-    const text = p.name.replace(/\s+/g, ' ').trim();
+    // WSDOT sometimes puts web links (<a href…>) in the text: keep the words, drop the tags.
+    const text = p.name.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
     alerts.push({
       id: `wsdot-alert-${p.id}`,
       kind,
@@ -148,7 +149,9 @@ export function parseWsdotAlerts(kml: string): Array<Omit<Incident, 'distanceMet
 }
 
 /** Words WSDOT uses for work that hasn't started yet: "will be closed nightly", "beginning Monday". */
-const FUTURE_WORDING = /\b(will|beginning|begins|starting|starts|scheduled|planned|upcoming|nightly|next week|this weekend)\b/i;
+const FUTURE_WORDING = /\b(will be|will close|beginning|begins|starting|starts|scheduled|planned|upcoming|next week|this weekend)\b/i;
+/** Words that mean it's happening right now: "is closed", "are blocked", "remains open". */
+const NOW_WORDING = /\b(is|are) (closed|blocked|reduced|shifted)\b|\bremains?\b|\bwill remain\b|\bcurrently\b/i;
 
 const CLOSURE_KINDS: Record<string, string> = {
   'Road closure': 'Full closure',
@@ -182,7 +185,7 @@ export function wsdotAlertToClosure(alert: Omit<Incident, 'distanceMeters'>): Om
     lanes: '',
     startsAt: null,
     endsAt: null,
-    status: FUTURE_WORDING.test(text) ? 'upcoming' : 'active',
+    status: FUTURE_WORDING.test(text) && !NOW_WORDING.test(text) ? 'upcoming' : 'active',
     source: 'WSDOT',
     lat: alert.lat,
     lon: alert.lon,

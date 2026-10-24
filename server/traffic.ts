@@ -205,7 +205,8 @@ export function clearTrafficCache(): void {
 
 /** Closures and weather only matter this close; the Caltrans files are big. */
 export const MAX_EXTRA_RADIUS_METERS = 150 * METERS_PER_MILE;
-export const MAX_CLOSURES = 60;
+/** Per list: up to this many closures happening now, and this many upcoming. */
+export const MAX_CLOSURES = 40;
 const LCS_TTL_MS = 10 * 60_000;
 const NWS_TTL_MS = 5 * 60_000;
 const TOMTOM_TTL_MS = 2 * 60_000;
@@ -374,7 +375,11 @@ export async function handleTrafficRequest(
     signs: nearby(signs, center, radiusMeters),
     flow: nearbyAll(flow, center, radiusMeters, MAX_FLOW),
     speedTiles,
-    closures: nearbyAll(closures, center, extraRadius, MAX_CLOSURES),
+    // Now and upcoming are capped separately, so a pile of upcoming work can't hide what's closed right now.
+    closures: [
+      ...nearbyAll(closures.filter((c) => c.status === 'active'), center, extraRadius, MAX_CLOSURES),
+      ...nearbyAll(closures.filter((c) => c.status === 'upcoming'), center, extraRadius, MAX_CLOSURES),
+    ],
     weather,
     warnings,
   };

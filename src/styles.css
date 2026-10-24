@@ -1038,3 +1038,23 @@ select {
   background: #f5a524;
   color: #1a1405;
 }
+
+/* Which way the road runs at a camera (when the exact camera direction isn't published) */
+.pin-axis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 44px;
+  border-radius: 2px;
+  background: linear-gradient(#fff 0 9px, transparent 9px 35px, #fff 35px);
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+  z-index: -1;
+}
+.chip-facing {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--accent);
+}

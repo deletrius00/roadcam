@@ -6,6 +6,7 @@
 import type { Compass } from './facing.js';
 import type { Camera, Incident, LatLon, NearbyCamera, SignMessage } from './types.js';
 import { distanceMeters } from './geo.js';
+import { roadAxis } from './roadAxis.js';
 
 /** The simulated car follows these points in order (roughly I-5 northbound). */
 export const DEMO_ROUTE: LatLon[] = [
@@ -65,13 +66,15 @@ export function demoCameras(): Camera[] {
 
 /** Demo cameras near `center`, with believable image ages relative to `now`. */
 export function demoNearby(center: LatLon, radiusMeters: number, now: number): NearbyCamera[] {
-  return demoCameras()
+  const all = demoCameras();
+  return all
     .map((camera, i) => ({
       ...camera,
       distanceMeters: distanceMeters(center, camera),
       imageTakenAt: new Date(now - (SEEDS[i]?.ageSec ?? 0) * 1000).toISOString(),
       imageTimeSource: 'demo' as const,
       unavailable: SEEDS[i]?.down ?? false,
+      roadAxisDeg: camera.facing ? null : roadAxis(camera, all),
     }))
     .filter((c) => c.distanceMeters <= radiusMeters)
     .sort((a, b) => a.distanceMeters - b.distanceMeters);

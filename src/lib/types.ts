@@ -40,6 +40,8 @@ export interface NearbyCamera extends Camera {
   imageTimeSource: ImageTimeSource;
   /** True when the camera is down and Caltrans serves a "Temporarily Unavailable" card. */
   unavailable: boolean;
+  /** Which way the highway runs at the camera, 0–180° (0 = north–south, 90 = east–west), or null. */
+  roadAxisDeg: number | null;
 }
 
 export interface CamerasResponse {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { ageMs, formatAge } from '../lib/age';
 import { friendlyCameraName } from '../lib/names';
 import { LaneGuide } from './LaneGuide';
+import { axisDirections, axisLabel } from '../lib/roadAxis';
 import type { NearbyCamera } from '../lib/types';
 import { withCacheBust } from './CameraCard';
 
@@ -39,7 +40,9 @@ export function Lightbox({ camera, now, refreshKey, onClose, heading }: Props) {
             ? 'Caltrans is showing a “Temporarily Unavailable” card for this camera right now.'
             : camera.facing
               ? `This camera looks ${camera.facing.toLowerCase()}. Traffic on the right is moving away from it; traffic on the left is coming toward it.`
-              : 'Caltrans doesn’t say which way this camera points. Tip: red taillights are moving away from the camera, white headlights are coming toward it.'}
+              : camera.roadAxisDeg !== null
+                ? `Caltrans doesn’t say which way this camera points, but ${camera.route || 'the highway'} runs ${axisLabel(camera.roadAxisDeg)} here, so it’s looking either ${axisDirections(camera.roadAxisDeg).join(' or ')}. Red taillights are moving away from the camera, white headlights are coming toward it.`
+                : 'Caltrans doesn’t say which way this camera points. Tip: red taillights are moving away from the camera, white headlights are coming toward it.'}
         </p>
         <button type="button" className="close" onClick={onClose} aria-label="Close">
           ×

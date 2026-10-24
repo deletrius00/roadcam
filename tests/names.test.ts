@@ -15,6 +15,11 @@ describe('friendlyCameraName', () => {
     ['TV320 -- I-80 : West of Truckee', 'West of Truckee'],
     ['SR-58 AT MOJAVE BYPASS', 'SR-58 at Mojave Bypass'],
     ['I-5 : Grapevine Bottom', 'Grapevine Bottom'],
+    // Names that include the camera direction or internal codes
+    ['SR-20 : At SR-1 - Looking East (C020)', 'At SR-1'],
+    ['T252W -- SR-123 : Ashby Avenue - Looking West', 'Ashby Avenue'],
+    ['(C 012) NB 5 : Just North Of Pacific Highway', 'Just North Of Pacific Highway'],
+    ['137 - SB I-5 N/O Lathrop Rd', 'SB I-5 N/O Lathrop Rd'],
   ];
   it.each(cases)('%s → %s', (raw, expected) => {
     expect(friendlyCameraName(raw)).toBe(expected);

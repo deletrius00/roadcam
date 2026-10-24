@@ -8,6 +8,10 @@ so you can tell at a glance whether to trust it.
 - Cameras split into **Ahead** and **Behind** based on your direction of travel, and move between
   them as you drive past
 - **Live map** showing you, your direction, the ahead/behind zones, and every camera pin (tap a pin for its picture)
+- **Traffic**: CHP incidents (crashes, hazards, stalled cars) and what the overhead freeway signs say right now, on the map and as a list
+- **Offline cameras** detected and marked (Caltrans' "Temporarily Unavailable" cards look fresh, so RoadCam checks the picture itself)
+- **Which lanes are which**: when Caltrans says which way a camera points, the picture's lanes are labeled ("↑ Northbound · You")
+- Pinch, double-tap, drag and scroll to move around the map
 - **"On I-5"**: works out which highway you're on from the cameras around you
 - Plain-English camera names ("Truck Escape Ramp (shoulder)" instead of `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`)
 - Tap any picture to enlarge it

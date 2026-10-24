@@ -22,8 +22,8 @@ you and behind you, and shows each camera's latest image with a live "x min ago"
 | `src/hooks/` | React hooks: `useLocation` (GPS + heading), `useCameras` (fetching), `useNow` (1-second clock), `usePrefersDark` (light/dark map tiles) |
 | `src/components/` | UI pieces: `MapView` (hand-built map, no library), `CameraCard`, `CameraSection`, `StatusBar`, `StartScreen`, `Lightbox` |
 | `src/App.tsx` | Puts it together; sorts cameras into ahead / behind / side |
-| `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), image timestamps (`imageTime.ts`), the `/api/cameras` handler (`handler.ts`) |
-| `api/cameras.ts` | Thin Vercel serverless wrapper around `server/handler.ts`. Keep it thin. |
+| `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), image age + offline check (`imageTime.ts`, `placeholder.ts`), `/api/cameras` (`handler.ts`), `/api/traffic` from CHP + Caltrans signs (`traffic.ts`) |
+| `api/cameras.ts`, `api/traffic.ts` | Thin Vercel serverless wrappers around `server/`. Keep them thin. |
 | `vite.config.mts` | Vite + Vitest config; a dev plugin serves `/api/cameras` locally with the same handler |
 | `tests/` | Vitest unit tests and fixtures |
 | `public/demo/` | Sample camera images for demo mode |
@@ -132,4 +132,6 @@ in the PR and update the fixture with a real (trimmed) sample.
 - Files in `api/`, `server/` and `src/lib/` must use `.js` extensions on relative imports
   (`import { x } from './geo.js'`). Vercel runs the API as plain Node ES modules with no bundler,
   and the first deploy crashed without them. `tests/runtime-imports.test.ts` enforces this.
+- Caltrans "Temporarily Unavailable" images have a fresh timestamp and normal size. Detect them from the picture bytes (`server/placeholder.ts`), never from age or size. The rule was validated on 592 live cameras; re-validate before changing it.
+- The CHP incident feed is sometimes invalid XML. Parse each `<Log>` block separately (`parseChpIncidents`), never with a strict XML parser.
 - _When an agent makes a mistake, add a one-line rule here so it doesn't happen again._

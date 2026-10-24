@@ -5,9 +5,11 @@ import { Lightbox } from './components/Lightbox';
 import { MapView } from './components/MapView';
 import { StartScreen } from './components/StartScreen';
 import { StatusBar } from './components/StatusBar';
+import { TrafficList } from './components/TrafficList';
 import { useCameras } from './hooks/useCameras';
 import { useLocation, type LocationMode } from './hooks/useLocation';
 import { useNow } from './hooks/useNow';
+import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
 import { guessCurrentRoute } from './lib/route';
 import type { NearbyCamera, Relation } from './lib/types';
@@ -53,6 +55,7 @@ export function App() {
   const [attempt, setAttempt] = useState(0);
   const location = useLocation(mode, attempt);
   const cameras = useCameras(location.position, radiusMiles, mode === 'demo');
+  const traffic = useTraffic(location.position, radiusMiles, mode === 'demo');
   const now = useNow(1000);
   const closeLightbox = useCallback(() => setOpen(null), []);
 
@@ -66,7 +69,8 @@ export function App() {
         distance: distanceMeters(pos, camera),
         relation: location.heading === null ? ('nearby' as const) : classifyRelation(pos, location.heading, camera),
       }))
-      .sort((a, b) => a.distance - b.distance);
+      // Working cameras first, then offline ones; closest first within each.
+      .sort((a, b) => Number(a.camera.unavailable) - Number(b.camera.unavailable) || a.distance - b.distance);
   }, [cameras.data, location.position, location.heading]);
 
   // Which highway are you on? Worked out from the cameras around you.
@@ -99,8 +103,10 @@ export function App() {
         now={now}
         refreshKey={refreshKey}
         onOpen={setOpen}
+        heading={location.heading}
       />
     ));
+  const offlineCount = placed.filter((p) => p.camera.unavailable).length;
 
   const headingKnown = location.heading !== null;
   const waiting = !cameras.data && (cameras.loading || location.status === 'locating');
@@ -139,12 +145,39 @@ export function App() {
             me={location.position}
             heading={location.heading}
             cameras={placed}
+            incidents={traffic?.incidents ?? []}
+            signs={traffic?.signs ?? []}
             radiusMiles={radiusMiles}
             now={now}
             refreshKey={refreshKey}
             onOpen={setOpen}
           />
         </div>
+      )}
+
+      {location.position && traffic && (
+        <TrafficList
+          me={location.position}
+          heading={location.heading}
+          incidents={traffic.incidents}
+          signs={traffic.signs}
+          now={now}
+        />
+      )}
+
+      {placed.length > 0 && (
+        <p className="tip">
+          {offlineCount > 0 && (
+            <>
+              <strong>
+                {offlineCount} of {placed.length} cameras are offline
+              </strong>{' '}
+              (Caltrans shows “Temporarily Unavailable”); they’re listed last.{' '}
+            </>
+          )}
+          Reading a picture: red taillights are moving away from the camera, white headlights are coming toward it. Where
+          Caltrans says which way a camera points, the lanes are labeled.
+        </p>
       )}
 
       {failedWithNoData ? (
@@ -183,7 +216,7 @@ export function App() {
         <strong> Passengers only.</strong>
       </footer>
 
-      {open && <Lightbox camera={open} now={now} refreshKey={refreshKey} onClose={closeLightbox} />}
+      {open && <Lightbox camera={open} now={now} refreshKey={refreshKey} onClose={closeLightbox} heading={location.heading} />}
     </div>
   );
 }

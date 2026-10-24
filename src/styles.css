@@ -777,3 +777,260 @@ select {
 .map-attribution a {
   color: inherit;
 }
+
+/* ---------- Offline cameras ---------- */
+.card.offline .card-media img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.card.offline .card-title {
+  color: var(--muted);
+}
+.age-offline {
+  color: #ffd1d1;
+}
+.age-offline .dot {
+  background: var(--unknown);
+}
+.pin-fresh.age-offline {
+  background: #5b6878;
+}
+.map-pin.pin-offline {
+  background: #5b6878 !important;
+  color: #e8edf3 !important;
+  opacity: 0.8;
+  width: 22px;
+  height: 22px;
+}
+.key-offline {
+  background: #5b6878;
+}
+
+/* ---------- Which way a camera points ---------- */
+.lanes {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+.lane {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 11, 15, 0.78);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 650;
+  backdrop-filter: blur(6px);
+}
+.lane.yours {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.lane b {
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--accent-ink);
+  color: var(--accent);
+}
+.pin-facing {
+  position: absolute;
+  inset: -9px;
+  pointer-events: none;
+}
+.pin-facing::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid #fff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.lightbox-media {
+  position: relative;
+}
+.lightbox-tip {
+  color: #b8c2cf;
+  font-size: 0.85rem;
+  margin: 8px 2px 0;
+  max-width: 70ch;
+}
+.tip {
+  margin: 12px 16px 0;
+  max-width: 1400px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+@media (min-width: 1432px) {
+  .tip { margin-left: auto; margin-right: auto; }
+}
+
+/* ---------- Map gestures ---------- */
+.map-layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+/* ---------- Traffic ---------- */
+.pin-incident {
+  background: #ff5d5d;
+  color: #fff;
+  border-radius: 8px;
+  z-index: 2;
+}
+.pin-incident.kind-stalled-vehicle,
+.pin-incident.kind-hazard {
+  background: #f5a524;
+  color: #1a1405;
+}
+.pin-incident svg path:last-child {
+  stroke: currentColor;
+}
+.pin-incident.kind-crash svg path:last-child,
+.pin-incident.kind-road-closure svg path:last-child,
+.pin-incident.kind-fire svg path:last-child,
+.pin-incident.kind-incident svg path:last-child {
+  stroke: #ff5d5d;
+}
+.pin-incident svg path:first-child {
+  fill: rgba(255, 255, 255, 0.95);
+}
+.pin-incident.kind-stalled-vehicle svg path:first-child,
+.pin-incident.kind-hazard svg path:first-child {
+  fill: #1a1405;
+}
+.pin-incident.kind-stalled-vehicle svg path:last-child,
+.pin-incident.kind-hazard svg path:last-child {
+  stroke: #f5a524;
+}
+.pin-sign {
+  background: #111;
+  color: #ffb000;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+}
+.key-incident { background: #ff5d5d; border-radius: 2px; }
+.key-sign { background: #111; border: 1px solid #ffb000; border-radius: 2px; }
+.map-popup-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+.sign-face {
+  flex: none;
+  min-width: 120px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0a0a0a;
+  color: #ffb000;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+  letter-spacing: 0.04em;
+  border: 2px solid #333;
+}
+.traffic {
+  padding: 16px 16px 0;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.traffic h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+.traffic ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.traffic-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.traffic-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.traffic-icon.incident {
+  background: #ff5d5d;
+  color: #fff;
+}
+.traffic-icon.sign {
+  background: #111;
+  color: #ffb000;
+}
+.traffic-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+.traffic-text .muted {
+  font-size: 0.8rem;
+}
+.traffic-dist {
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--muted);
+  text-align: right;
+}
+.map-legend {
+  flex-wrap: wrap;
+  max-width: calc(100% - 70px);
+  border-radius: 14px;
+}
+
+/* Compact legend so it doesn't cover the map on phones */
+.map-legend {
+  gap: 4px 9px;
+  padding: 5px 9px;
+  font-size: 0.68rem;
+}
+.map-legend .key {
+  width: 8px;
+  height: 8px;
+}
+.traffic-icon.incident.kind-stalled-vehicle,
+.traffic-icon.incident.kind-hazard {
+  background: #f5a524;
+  color: #1a1405;
+}

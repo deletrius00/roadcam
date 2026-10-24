@@ -3,6 +3,7 @@ import { clearFeedCache, handleCamerasRequest, type HandlerDeps } from '../serve
 import { clearImageTimeCache } from '../server/imageTime';
 import type { CamerasResponse } from '../src/lib/types';
 import sample from './fixtures/caltrans-sample.json';
+import jpegs from './fixtures/jpeg-samples.json';
 
 const NOW = Date.parse('2026-10-23T22:00:00Z');
 const NEAR_TEMPLIN = 'lat=34.55&lon=-118.64';
@@ -10,7 +11,8 @@ const NEAR_TEMPLIN = 'lat=34.55&lon=-118.64';
 /**
  * A fake `fetch` so tests never touch the real internet.
  * - District 7 returns the sample fixture; other districts return an empty feed.
- * - HEAD requests for images return a Last-Modified header (unless told to fail).
+ * - Image requests return a Last-Modified header and real picture bytes (unless told to fail).
+ *   Templin's camera serves a real picture; Gorman's serves a "Temporarily Unavailable" card.
  */
 function fakeFetch(options: { failDistricts?: number[]; imageHeadFails?: boolean } = {}) {
   const calls: string[] = [];
@@ -25,10 +27,11 @@ function fakeFetch(options: { failDistricts?: number[]; imageHeadFails?: boolean
       return Response.json(d === 7 ? sample : { data: [] });
     }
 
-    if (init?.method === 'HEAD') {
+    if (url.endsWith('.jpg')) {
       if (options.imageHeadFails) throw new Error('network down');
-      return new Response(null, {
-        status: 200,
+      const picture = url.includes('gorman') ? jpegs.placeholder_1 : jpegs.real_1;
+      return new Response(Buffer.from(picture, 'base64'), {
+        status: 206,
         headers: { 'last-modified': 'Fri, 23 Oct 2026 21:58:00 GMT' },
       });
     }
@@ -78,6 +81,24 @@ describe('GET /api/cameras results', () => {
       imageTakenAt: '2026-10-23T21:58:00.000Z',
       imageTimeSource: 'last-modified',
     });
+  });
+
+  it('flags cameras that are serving a "Temporarily Unavailable" card', async () => {
+    const { body } = await call(`${NEAR_TEMPLIN}&radius=50`, deps(fakeFetch().fn));
+    const byName = Object.fromEntries(body.cameras.map((c) => [c.name, c.unavailable]));
+    expect(byName).toEqual({ 'I-5 : Templin Hwy': false, 'I-5 : Gorman': true });
+  });
+
+  it('only downloads the first few KB of each image', async () => {
+    const seen: Array<string | null> = [];
+    const base = fakeFetch().fn;
+    const spy = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('.jpg')) seen.push(new Headers(init?.headers).get('range'));
+      return base(input, init);
+    }) as typeof fetch;
+    await call(NEAR_TEMPLIN, deps(spy));
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((r) => r === 'bytes=0-2999')).toBe(true);
   });
 
   it('filters by radius', async () => {

@@ -1,3 +1,5 @@
+import type { Compass } from './facing.js';
+
 /** A point on the map, in decimal degrees (WGS84, same as GPS). */
 export interface LatLon {
   lat: number;
@@ -22,6 +24,8 @@ export interface Camera extends LatLon {
   updateFrequencyMin: number | null;
   /** When the source last updated this camera's record (ISO 8601, UTC). */
   recordedAt: string | null;
+  /** Which way the camera points, when the source says so (rare), else null. */
+  facing: Compass | null;
 }
 
 /** Where an image's timestamp came from, from most to least trustworthy. */
@@ -34,6 +38,8 @@ export interface NearbyCamera extends Camera {
   /** When the current image was taken (ISO 8601, UTC), best estimate. */
   imageTakenAt: string | null;
   imageTimeSource: ImageTimeSource;
+  /** True when the camera is down and Caltrans serves a "Temporarily Unavailable" card. */
+  unavailable: boolean;
 }
 
 export interface CamerasResponse {
@@ -46,3 +52,35 @@ export interface CamerasResponse {
 }
 
 export type Relation = 'ahead' | 'behind' | 'side';
+
+/** A CHP incident: crash, hazard, stalled vehicle, closure… */
+export interface Incident extends LatLon {
+  id: string;
+  /** Short category: "Crash", "Hazard", "Stalled vehicle", "Road closure", "Fire", "Incident". */
+  kind: string;
+  /** Plain-English description, e.g. "Traffic collision, unknown injuries". */
+  description: string;
+  /** Where, as CHP wrote it, e.g. "I5 S / J St". */
+  location: string;
+  /** When CHP logged it (ISO 8601), if known. */
+  startedAt: string | null;
+  distanceMeters: number;
+}
+
+/** What a Caltrans overhead message sign currently says. */
+export interface SignMessage extends LatLon {
+  id: string;
+  route: string;
+  /** Direction of traffic the sign faces: North, South, East, West. */
+  direction: string;
+  lines: string[];
+  postedAt: string | null;
+  distanceMeters: number;
+}
+
+export interface TrafficResponse {
+  generatedAt: string;
+  incidents: Incident[];
+  signs: SignMessage[];
+  warnings: string[];
+}

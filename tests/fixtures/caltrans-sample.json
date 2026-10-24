@@ -1,0 +1,106 @@
+{
+  "data": [
+    {
+      "cctv": {
+        "index": "1",
+        "recordTimestamp": { "recordDate": "2026-07-15", "recordTime": "14:30:00" },
+        "location": {
+          "district": 7,
+          "locationName": "I-5 : Templin Hwy",
+          "nearbyPlace": "Castaic",
+          "longitude": -118.6452,
+          "latitude": 34.5525,
+          "elevation": 1650,
+          "direction": "North",
+          "county": "Los Angeles",
+          "route": "I-5",
+          "routeSuffix": "",
+          "postmilePrefix": "R",
+          "postmile": 65.1,
+          "alignment": "",
+          "milepost": 172.3
+        },
+        "inService": "true",
+        "imageData": {
+          "imageDescription": "Looking North",
+          "streamingVideoURL": "Not Reported",
+          "static": {
+            "currentImageUpdateFrequency": "5",
+            "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/templin/templin.jpg",
+            "referenceImageUpdateFrequency": "5",
+            "referenceImage1UpdateAgoURL": "Not Reported"
+          }
+        }
+      }
+    },
+    {
+      "cctv": {
+        "index": "2",
+        "recordTimestamp": { "recordDate": "2026-01-15", "recordTime": "09:00:00" },
+        "location": {
+          "district": 7,
+          "locationName": "I-5 : Gorman",
+          "nearbyPlace": "Gorman",
+          "longitude": "-118.8462",
+          "latitude": "34.7958",
+          "direction": "South",
+          "county": "Los Angeles",
+          "route": "I-5"
+        },
+        "inService": "true",
+        "imageData": {
+          "imageDescription": "Looking South",
+          "streamingVideoURL": "Not Reported",
+          "static": {
+            "currentImageUpdateFrequency": "Not Reported",
+            "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/gorman/gorman.jpg"
+          }
+        }
+      }
+    },
+    {
+      "cctv": {
+        "index": "3",
+        "recordTimestamp": { "recordDate": "2026-07-15", "recordTime": "14:30:00" },
+        "location": {
+          "district": 7,
+          "locationName": "Out of service camera",
+          "longitude": -118.5,
+          "latitude": 34.4,
+          "direction": "East",
+          "county": "Los Angeles",
+          "route": "SR-14"
+        },
+        "inService": "false",
+        "imageData": {
+          "static": {
+            "currentImageUpdateFrequency": "5",
+            "currentImageURL": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/oos/oos.jpg"
+          }
+        }
+      }
+    },
+    {
+      "cctv": {
+        "index": "4",
+        "recordTimestamp": { "recordDate": "2026-07-15", "recordTime": "14:30:00" },
+        "location": {
+          "district": 7,
+          "locationName": "Camera with no image",
+          "longitude": -118.4,
+          "latitude": 34.3,
+          "direction": "West",
+          "county": "Los Angeles",
+          "route": "SR-126"
+        },
+        "inService": "true",
+        "imageData": {
+          "static": {
+            "currentImageUpdateFrequency": "Not Reported",
+            "currentImageURL": "Not Reported"
+          }
+        }
+      }
+    }
+  ]
+}

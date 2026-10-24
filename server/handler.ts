@@ -1,0 +1,132 @@
+/**
+ * GET /api/cameras?lat=34.05&lon=-118.25&radius=25[&demo=1]
+ *
+ * Returns the cameras within `radius` miles of the point, closest first, each with
+ * its distance and a best estimate of when its current image was taken.
+ *
+ * Deciding "ahead" vs "behind" happens in the browser, because your heading
+ * changes every second while the list of nearby cameras changes slowly.
+ */
+import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltrans';
+import { fetchImageLastModified, mapWithLimit } from './imageTime';
+import { demoNearby } from '../src/lib/demo';
+import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo';
+import type { Camera, CamerasResponse, NearbyCamera } from '../src/lib/types';
+
+export const DEFAULT_RADIUS_MILES = 25;
+export const MAX_RADIUS_MILES = 100;
+export const MAX_CAMERAS = 40;
+const FEED_CACHE_TTL_MS = 10 * 60_000;
+
+export interface HandlerDeps {
+  fetch: typeof fetch;
+  now: () => number;
+}
+
+const defaultDeps: HandlerDeps = {
+  fetch: (...args) => fetch(...args),
+  now: () => Date.now(),
+};
+
+const feedCache = new Map<number, { loadedAt: number; cameras: Camera[] }>();
+
+export function clearFeedCache(): void {
+  feedCache.clear();
+}
+
+function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', ...extraHeaders },
+  });
+}
+
+function badRequest(error: string, field: string): Response {
+  return json({ error, field }, 400);
+}
+
+async function loadDistrict(district: number, deps: HandlerDeps): Promise<Camera[]> {
+  const cached = feedCache.get(district);
+  if (cached && deps.now() - cached.loadedAt < FEED_CACHE_TTL_MS) return cached.cameras;
+
+  const response = await deps.fetch(caltransFeedUrl(district), {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const cameras = parseCaltransFeed(await response.json());
+  feedCache.set(district, { loadedAt: deps.now(), cameras });
+  return cameras;
+}
+
+export async function handleCamerasRequest(
+  request: Request,
+  deps: HandlerDeps = defaultDeps,
+): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+
+  const lat = Number(params.get('lat'));
+  const lon = Number(params.get('lon'));
+  if (!params.has('lat') || !Number.isFinite(lat) || lat < -90 || lat > 90) {
+    return badRequest('lat must be a number between -90 and 90', 'lat');
+  }
+  if (!params.has('lon') || !Number.isFinite(lon) || lon < -180 || lon > 180) {
+    return badRequest('lon must be a number between -180 and 180', 'lon');
+  }
+
+  const radiusMiles = params.has('radius') ? Number(params.get('radius')) : DEFAULT_RADIUS_MILES;
+  if (!Number.isFinite(radiusMiles) || radiusMiles <= 0 || radiusMiles > MAX_RADIUS_MILES) {
+    return badRequest(`radius must be between 0 and ${MAX_RADIUS_MILES} miles`, 'radius');
+  }
+
+  const center = { lat, lon };
+  const radiusMeters = radiusMiles * METERS_PER_MILE;
+  const now = deps.now();
+
+  if (params.get('demo') === '1') {
+    const body: CamerasResponse = {
+      generatedAt: new Date(now).toISOString(),
+      center,
+      radiusMiles,
+      cameras: demoNearby(center, radiusMeters, now).slice(0, MAX_CAMERAS),
+      warnings: [],
+    };
+    return json(body, 200, { 'cache-control': 'no-store' });
+  }
+
+  // Load every district in parallel; one broken district shouldn't break the app.
+  const warnings: string[] = [];
+  const results = await Promise.allSettled(CALTRANS_DISTRICTS.map((d) => loadDistrict(d, deps)));
+  const all: Camera[] = [];
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled') all.push(...result.value);
+    else warnings.push(`Caltrans district ${CALTRANS_DISTRICTS[i]} unavailable`);
+  });
+  if (all.length === 0 && warnings.length > 0) {
+    return json({ error: 'Camera data is temporarily unavailable', warnings }, 502);
+  }
+
+  const nearby = all
+    .map((camera) => ({ camera, distance: distanceMeters(center, camera) }))
+    .filter((c) => c.distance <= radiusMeters)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, MAX_CAMERAS);
+
+  const cameras: NearbyCamera[] = await mapWithLimit(nearby, 8, async ({ camera, distance }) => {
+    const lastModified = await fetchImageLastModified(camera.imageUrl, deps.fetch, now);
+    return {
+      ...camera,
+      distanceMeters: distance,
+      imageTakenAt: lastModified ?? camera.recordedAt,
+      imageTimeSource: lastModified ? 'last-modified' : camera.recordedAt ? 'record' : 'unknown',
+    };
+  });
+
+  const body: CamerasResponse = {
+    generatedAt: new Date(now).toISOString(),
+    center,
+    radiusMiles,
+    cameras,
+    warnings,
+  };
+  return json(body, 200, { 'cache-control': 'public, s-maxage=30, stale-while-revalidate=30' });
+}

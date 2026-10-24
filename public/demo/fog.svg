@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9bfc4"/><stop offset="1" stop-color="#d9dcde"/></linearGradient></defs>
+<rect width="640" height="400" fill="url(#s)"/>
+<path d="M0 190 L90 120 L170 165 L260 95 L360 160 L450 110 L540 150 L640 105 L640 230 L0 230Z" fill="#9aa1a4"/>
+<path d="M0 215 L120 170 L230 200 L340 160 L470 205 L560 175 L640 195 L640 240 L0 240Z" fill="#a9b0b3"/>
+<rect y="225" width="640" height="175" fill="#a9b0b3"/>
+<path d="M300 222 L340 222 L640 400 L0 400Z" fill="#7d8286"/>
+<path d="M312.6 222.0 L313.8 222.0 L307.9 232.7 L306.2 232.7Z" fill="#e6e6e0"/>
+<path d="M297.5 247.4 L299.8 247.4 L293.9 258.1 L291.1 258.1Z" fill="#e6e6e0"/>
+<path d="M282.3 272.9 L285.8 272.9 L279.9 283.5 L276.0 283.5Z" fill="#e6e6e0"/>
+<path d="M267.2 298.3 L271.8 298.3 L265.9 309.0 L260.8 309.0Z" fill="#e6e6e0"/>
+<path d="M252.0 323.7 L257.8 323.7 L251.9 334.4 L245.7 334.4Z" fill="#e6e6e0"/>
+<path d="M236.9 349.1 L243.8 349.1 L237.9 359.8 L230.5 359.8Z" fill="#e6e6e0"/>
+<path d="M221.7 374.6 L229.8 374.6 L223.9 385.3 L215.4 385.3Z" fill="#e6e6e0"/>
+<path d="M325.8 222.0 L327.0 222.0 L333.0 232.7 L331.3 232.7Z" fill="#e6e6e0"/>
+<path d="M338.9 247.4 L341.3 247.4 L347.3 258.1 L344.5 258.1Z" fill="#e6e6e0"/>
+<path d="M352.1 272.9 L355.6 272.9 L361.6 283.5 L357.6 283.5Z" fill="#e6e6e0"/>
+<path d="M365.2 298.3 L369.9 298.3 L375.9 309.0 L370.7 309.0Z" fill="#e6e6e0"/>
+<path d="M378.4 323.7 L384.1 323.7 L390.1 334.4 L383.9 334.4Z" fill="#e6e6e0"/>
+<path d="M391.5 349.1 L398.4 349.1 L404.4 359.8 L397.0 359.8Z" fill="#e6e6e0"/>
+<path d="M404.7 374.6 L412.7 374.6 L418.7 385.3 L410.2 385.3Z" fill="#e6e6e0"/>
+<rect x="308.0" y="250.5" width="24.1" height="13.2" rx="3.6" fill="#555"/>
+<circle cx="312.3" cy="259.2" r="1.7" fill="#ff4040"/><circle cx="327.7" cy="259.2" r="1.7" fill="#ff4040"/>
+<rect x="309.9" y="241.0" width="20.1" height="11.1" rx="3.0" fill="#888"/>
+<circle cx="313.6" cy="248.2" r="1.4" fill="#ff4040"/><circle cx="326.4" cy="248.2" r="1.4" fill="#ff4040"/>
+<rect x="460.1" y="330.3" width="57.1" height="31.4" rx="8.6" fill="#666"/>
+<circle cx="470.4" cy="350.8" r="4.0" fill="#fff6c8"/><circle cx="506.9" cy="350.8" r="4.0" fill="#fff6c8"/>
+<rect width="640" height="400" fill="#e3e6e8" opacity="0.55"/>
+<rect x="10" y="364" width="190" height="26" rx="4" fill="#000" opacity="0.55"/><text x="20" y="382" font-family="monospace" font-size="14" fill="#fff">DEMO CAM · FOG</text>
+</svg>

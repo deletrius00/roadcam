@@ -11,6 +11,7 @@ import { useLocation, type LocationMode } from './hooks/useLocation';
 import { useNow } from './hooks/useNow';
 import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
+import { formatCountdown, secondsUntilRefresh } from './lib/refresh';
 import { guessCurrentRoute } from './lib/route';
 import type { LatLon, NearbyCamera, Relation } from './lib/types';
 
@@ -70,6 +71,18 @@ export function App() {
   const traffic = useTraffic(location.position, radiusMiles, mode === 'demo');
   const now = useNow(1000);
   const closeLightbox = useCallback(() => setOpen(null), []);
+
+  // "Refresh" button: one tap reloads cameras and traffic together.
+  // While either is still loading, extra taps are ignored (the hooks also guard against bursts).
+  const refreshing = cameras.loading || traffic.loading;
+  const refreshCameras = cameras.refresh;
+  const refreshTraffic = traffic.refresh;
+  const refreshNow = useCallback(() => {
+    if (refreshing) return;
+    refreshCameras();
+    refreshTraffic();
+  }, [refreshing, refreshCameras, refreshTraffic]);
+  const countdown = formatCountdown(secondsUntilRefresh(cameras.nextRefreshAt, now), refreshing);
 
   // Sort every camera into ahead / behind / side using where you are *right now*.
   const placed = useMemo<Placed[]>(() => {
@@ -139,6 +152,9 @@ export function App() {
           onRadiusChange={setRadiusMiles}
           showMap={showMap}
           onToggleMap={toggleMap}
+          onRefresh={refreshNow}
+          refreshing={refreshing}
+          countdown={countdown}
           onStop={() => setMode('off')}
         />
       </header>
@@ -160,9 +176,9 @@ export function App() {
             me={location.position}
             heading={location.heading}
             cameras={placed}
-            incidents={traffic?.incidents ?? []}
-            signs={traffic?.signs ?? []}
-            flow={traffic?.flow ?? []}
+            incidents={traffic.data?.incidents ?? []}
+            signs={traffic.data?.signs ?? []}
+            flow={traffic.data?.flow ?? []}
             radiusMiles={radiusMiles}
             now={now}
             refreshKey={refreshKey}
@@ -171,13 +187,13 @@ export function App() {
         </div>
       )}
 
-      {location.position && traffic && (
+      {location.position && traffic.data && (
         <TrafficList
           me={location.position}
           heading={location.heading}
-          incidents={traffic.incidents}
-          signs={traffic.signs}
-          flow={traffic.flow ?? []}
+          incidents={traffic.data.incidents}
+          signs={traffic.data.signs}
+          flow={traffic.data.flow ?? []}
           now={now}
         />
       )}

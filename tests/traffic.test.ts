@@ -77,6 +77,25 @@ describe('CHP incidents', () => {
   });
 });
 
+// Exactly as the live feed sends it (Oct 2026): spaces around "=", Windows line endings.
+const CHP_RAW = '<?xml version="1.0" ?>\r\n<State><Center ID = "SAHB">\r\n<Dispatch ID = "STCC">\r\n\r\n\t\t<Log ID = "261023ST0404">\r\n\t\t\t<LogTime>"Oct 23 2026 11:22PM"</LogTime>\r\n\t\t\t<LogType>"1125-Traffic Hazard"</LogType>\r\n\t\t\t<Location>"I205 E / N Macarthur Dr Onr"</Location>\r\n\t\t\t<LocationDesc>"JWO"</LocationDesc>\r\n\t\t\t<Area>"Tracy"</Area>\r\n\t\t\t<ThomasBrothers>""</ThomasBrothers>\r\n\t\t\t<LATLON>"37764645:121410691"</LATLON>\r\n\t\t\t<LogDetails>\r\n\t\t</LogDetails></Log>';
+
+describe('CHP live format', () => {
+  it('reads entries written as <Log ID = "…"> with Windows line endings', () => {
+    expect(parseChpIncidents(CHP_RAW)).toEqual([
+      {
+        id: 'chp-261023ST0404',
+        kind: 'Hazard',
+        description: 'Traffic hazard',
+        location: 'I205 E / N Macarthur Dr Onr',
+        startedAt: '2026-10-24T06:22:00.000Z',
+        lat: 37.764645,
+        lon: -121.410691,
+      },
+    ]);
+  });
+});
+
 describe('Caltrans message signs', () => {
   it('keeps only signs showing a message', () => {
     const signs = parseSignFeed(SIGN_JSON);

@@ -11,6 +11,7 @@ import { useLocation, type LocationMode } from './hooks/useLocation';
 import { useNow } from './hooks/useNow';
 import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
+import { splitNextCamera } from './lib/nextCamera';
 import { guessCurrentRoute } from './lib/route';
 import type { LatLon, NearbyCamera, Relation } from './lib/types';
 
@@ -105,19 +106,23 @@ export function App() {
   }
 
   const by = (r: Placed['relation']) => placed.filter((p) => p.relation === r).slice(0, MAX_PER_SECTION);
+  // The closest camera ahead gets its own big card, so it's left out of the Ahead list below.
+  const { next: nextCamera, rest: aheadRest } = splitNextCamera(placed.filter((p) => p.relation === 'ahead'));
+  const ahead = aheadRest.slice(0, MAX_PER_SECTION);
   const refreshKey = cameras.fetchedAt ?? 0;
-  const renderCards = (list: Placed[]) =>
-    list.map(({ camera, distance }) => (
-      <CameraCard
-        key={camera.id}
-        camera={camera}
-        distanceMeters={distance}
-        now={now}
-        refreshKey={refreshKey}
-        onOpen={setOpen}
-        heading={location.heading}
-      />
-    ));
+  const renderCard = ({ camera, distance }: Placed, variant: 'default' | 'hero' = 'default') => (
+    <CameraCard
+      key={camera.id}
+      camera={camera}
+      distanceMeters={distance}
+      now={now}
+      refreshKey={refreshKey}
+      onOpen={setOpen}
+      heading={location.heading}
+      variant={variant}
+    />
+  );
+  const renderCards = (list: Placed[]) => list.map((p) => renderCard(p));
   const offlineCount = placed.filter((p) => p.camera.unavailable).length;
 
   const headingKnown = location.heading !== null;
@@ -206,8 +211,18 @@ export function App() {
         </main>
       ) : headingKnown ? (
         <main className="columns">
-          <CameraSection title="Ahead" icon="▲" count={by('ahead').length} emptyText={`No cameras ahead within ${radiusMiles} miles.`}>
-            {renderCards(by('ahead'))}
+          {nextCamera && (
+            <section className="next-camera" aria-label="Next camera">
+              {renderCard(nextCamera, 'hero')}
+            </section>
+          )}
+          <CameraSection
+            title="Ahead"
+            icon="▲"
+            count={ahead.length}
+            emptyText={nextCamera ? `No other cameras ahead within ${radiusMiles} miles.` : `No cameras ahead within ${radiusMiles} miles.`}
+          >
+            {renderCards(ahead)}
           </CameraSection>
           <CameraSection title="Behind" icon="▼" count={by('behind').length} emptyText={`No cameras behind within ${radiusMiles} miles.`}>
             {renderCards(by('behind'))}

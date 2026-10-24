@@ -891,6 +891,7 @@ select {
   z-index: 2;
 }
 .pin-incident.kind-stalled-vehicle,
+.pin-incident.kind-roadwork,
 .pin-incident.kind-hazard {
   background: #f5a524;
   color: #1a1405;
@@ -908,10 +909,12 @@ select {
   fill: rgba(255, 255, 255, 0.95);
 }
 .pin-incident.kind-stalled-vehicle svg path:first-child,
+.pin-incident.kind-roadwork svg path:first-child,
 .pin-incident.kind-hazard svg path:first-child {
   fill: #1a1405;
 }
 .pin-incident.kind-stalled-vehicle svg path:last-child,
+.pin-incident.kind-roadwork svg path:last-child,
 .pin-incident.kind-hazard svg path:last-child {
   stroke: #f5a524;
 }
@@ -1030,6 +1033,7 @@ select {
   height: 8px;
 }
 .traffic-icon.incident.kind-stalled-vehicle,
+.traffic-icon.incident.kind-roadwork,
 .traffic-icon.incident.kind-hazard {
   background: #f5a524;
   color: #1a1405;

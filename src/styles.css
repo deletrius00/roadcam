@@ -277,9 +277,40 @@ select {
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
-  .columns .side {
+  .columns .side,
+  .columns .next-camera {
     grid-column: 1 / -1;
   }
+}
+
+/* ---------- "Next camera" hero card ---------- */
+/* The closest camera ahead, full width with a bigger picture. */
+.card-hero .card-media {
+  aspect-ratio: 4 / 3;
+  max-height: 60vh;
+}
+.card-hero .card-media img {
+  /* Show the whole picture (no cropping); any spare room shows the card background. */
+  object-fit: contain;
+}
+.card-hero .badge {
+  font-size: 0.9rem;
+}
+.card-hero .card-title {
+  font-size: 1.2rem;
+}
+/* Yellow pill with dark ink: readable on both the dark and the light card background. */
+.card-eyebrow {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 .section-head {
   display: flex;
@@ -516,6 +547,38 @@ select {
 .ghost.pressed {
   background: var(--surface-2);
   border-color: var(--accent);
+}
+
+/* ---------- Refresh button + countdown ---------- */
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.refresh svg {
+  color: var(--accent);
+}
+/* While a refresh is running the arrow spins. The reduced-motion rule above turns this off. */
+.refresh.spinning svg {
+  animation: spin 0.9s linear infinite;
+}
+.refresh[aria-busy='true'] {
+  cursor: progress;
+}
+.countdown {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Phones: icon only, to save room in the top bar. */
+@media (max-width: 720px) {
+  .refresh-label {
+    display: none;
+  }
+  .refresh {
+    padding: 6px 8px;
+  }
 }
 
 /* ---------- Map ---------- */

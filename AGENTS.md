@@ -22,7 +22,7 @@ you and behind you, and shows each camera's latest image with a live "x min ago"
 | `src/hooks/` | React hooks: `useLocation` (GPS + heading), `useCameras` (fetching), `useNow` (1-second clock), `usePrefersDark` (light/dark map tiles) |
 | `src/components/` | UI pieces: `MapView` (hand-built map, no library), `CameraCard`, `CameraSection`, `StatusBar`, `StartScreen`, `Lightbox` |
 | `src/App.tsx` | Puts it together; sorts cameras into ahead / behind / side |
-| `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), image age + offline check (`imageTime.ts`, `placeholder.ts`), `/api/cameras` (`handler.ts`), `/api/traffic` from CHP + Caltrans signs (`traffic.ts`) |
+| `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), which Caltrans districts a search needs (`districts.ts`), image age + offline check (`imageTime.ts`, `placeholder.ts`), `/api/cameras` (`handler.ts`), `/api/traffic` from CHP + Caltrans signs (`traffic.ts`) |
 | `api/cameras.ts`, `api/traffic.ts` | Thin Vercel serverless wrappers around `server/`. Keep them thin. |
 | `vite.config.mts` | Vite + Vitest config; a dev plugin serves `/api/cameras` locally with the same handler |
 | `tests/` | Vitest unit tests and fixtures |

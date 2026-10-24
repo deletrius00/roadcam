@@ -1,5 +1,6 @@
 import { compassLabel } from '../lib/geo';
 import type { RouteGuess } from '../lib/route';
+import { RADIUS_OPTIONS } from '../lib/settings';
 import type { LocationState } from '../hooks/useLocation';
 
 interface Props {
@@ -13,8 +14,6 @@ interface Props {
   onToggleMap: () => void;
   onStop: () => void;
 }
-
-export const RADIUS_OPTIONS = [10, 25, 50];
 
 export function StatusBar({ location, demo, route, radiusMiles, onRadiusChange, showMap, onToggleMap, onStop }: Props) {
   const { heading, speed, status } = location;

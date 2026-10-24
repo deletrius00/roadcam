@@ -12,6 +12,7 @@ import { useNow } from './hooks/useNow';
 import { useTraffic } from './hooks/useTraffic';
 import { classifyRelation, distanceMeters } from './lib/geo';
 import { guessCurrentRoute } from './lib/route';
+import { loadRadiusMiles, saveRadiusMiles } from './lib/settings';
 import type { LatLon, NearbyCamera, Relation } from './lib/types';
 
 const MAX_PER_SECTION = 12;
@@ -50,7 +51,12 @@ interface Placed {
 
 export function App() {
   const [mode, setMode] = useState<LocationMode>(initialMode);
-  const [radiusMiles, setRadiusMiles] = useState(25);
+  // Start on the radius you picked last time (or 25 mi), and remember any new pick.
+  const [radiusMiles, setRadiusMiles] = useState(() => loadRadiusMiles());
+  const changeRadius = (miles: number) => {
+    setRadiusMiles(miles);
+    saveRadiusMiles(miles);
+  };
   const [open, setOpen] = useState<NearbyCamera | null>(null);
   const [showMap, setShowMap] = useState(initialShowMap);
   const toggleMap = () =>
@@ -136,7 +142,7 @@ export function App() {
           demo={mode === 'demo'}
           route={route}
           radiusMiles={radiusMiles}
-          onRadiusChange={setRadiusMiles}
+          onRadiusChange={changeRadius}
           showMap={showMap}
           onToggleMap={toggleMap}
           onStop={() => setMode('off')}

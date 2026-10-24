@@ -182,6 +182,27 @@ mode, and screenshotted. That review caught three real bugs:
 
 ---
 
+## Step 8: The map, friendly names, and "which highway am I on?" (added later)
+
+- **The map, without a map library.** Online maps are made of 256×256 picture squares called
+  *tiles*. At zoom level z, the world is 256·2^z pixels wide. `src/lib/tiles.ts` converts GPS
+  coordinates to pixels on that giant picture, works out which tiles cover the screen, and
+  loads them from CARTO (free tiles built from OpenStreetMap). `MapView` puts tiles, your blue
+  arrow, and the camera pins on top. The map also draws the **flashlight**: the yellow and
+  purple slices are exactly the zones that decide ahead vs. behind.
+- **Friendly names.** Caltrans uses internal codes like `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`
+  (county Kern, route 5, *at*…). `src/lib/names.ts` decodes them, turning `JNO` into "Just north
+  of", dropping camera numbers like `(971)`, and fixing ALL CAPS. The tests use real names from
+  the live feed.
+- **Which highway am I on?** Highway cameras sit along the road, so a line between two I-5
+  cameras roughly traces I-5. If you're within half a mile of such a line, you're probably on
+  I-5. That's `src/lib/route.ts`.
+
+> **Lesson:** When a new library is tempting, check how much of it you need. Here about
+> 100 lines of tested math replaced a whole mapping library, and every line is readable.
+
+---
+
 ## What was and wasn't verified before handing this over
 
 Being honest about this is part of the job, for humans and agents alike.

@@ -18,9 +18,9 @@ you and behind you, and shows each camera's latest image with a live "x min ago"
 
 | Path | What lives there |
 |---|---|
-| `src/lib/` | Pure logic, no React: geo math (`geo.ts`), image age (`age.ts`), heading (`heading.ts`), demo data (`demo.ts`), shared types (`types.ts`) |
-| `src/hooks/` | React hooks: `useLocation` (GPS + heading), `useCameras` (fetching), `useNow` (1-second clock) |
-| `src/components/` | UI pieces: `CameraCard`, `CameraSection`, `StatusBar`, `StartScreen`, `Lightbox` |
+| `src/lib/` | Pure logic, no React: geo math (`geo.ts`), image age (`age.ts`), heading (`heading.ts`), map tile math (`tiles.ts`), friendly camera names (`names.ts`), "which highway am I on" (`route.ts`), demo data (`demo.ts`), shared types (`types.ts`) |
+| `src/hooks/` | React hooks: `useLocation` (GPS + heading), `useCameras` (fetching), `useNow` (1-second clock), `usePrefersDark` (light/dark map tiles) |
+| `src/components/` | UI pieces: `MapView` (hand-built map, no library), `CameraCard`, `CameraSection`, `StatusBar`, `StartScreen`, `Lightbox` |
 | `src/App.tsx` | Puts it together; sorts cameras into ahead / behind / side |
 | `server/` | Backend logic: Caltrans parsing (`caltrans.ts`), image timestamps (`imageTime.ts`), the `/api/cameras` handler (`handler.ts`) |
 | `api/cameras.ts` | Thin Vercel serverless wrapper around `server/handler.ts`. Keep it thin. |
@@ -88,6 +88,9 @@ or delete tests to make them pass.
 ## Boundaries — do NOT
 
 - Add dependencies without explaining why in the PR. Prefer the platform (fetch, Intl, CSS).
+  The map is deliberately library-free (`src/lib/tiles.ts` + `MapView`); don't swap in Leaflet/Mapbox without an issue asking for it.
+- Remove the OpenStreetMap / CARTO attribution from the map (their terms require it).
+- Show raw Caltrans camera names in the UI. Use `friendlyCameraName()`.
 - Change the `/api/cameras` response shape in a breaking way. Add fields; don't rename or remove.
 - Increase load on Caltrans: keep the feed cache (10 min) and image-time cache (30 s);
   never fetch feeds or images from the browser in a loop.

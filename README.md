@@ -7,6 +7,9 @@ so you can tell at a glance whether to trust it.
 - Green: under 5 minutes old · Amber: under 30 minutes · Red: older
 - Cameras split into **Ahead** and **Behind** based on your direction of travel, and move between
   them as you drive past
+- **Live map** showing you, your direction, the ahead/behind zones, and every camera pin (tap a pin for its picture)
+- **"On I-5"**: works out which highway you're on from the cameras around you
+- Plain-English camera names ("Truck Escape Ramp (shoulder)" instead of `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`)
 - Tap any picture to enlarge it
 - Works on phones and desktops, in dark and light mode
 - **Demo mode** (`/?demo=1`): a simulated drive north on I-5, so you can try it from the couch
@@ -127,6 +130,8 @@ See [`docs/HOW-THIS-WAS-BUILT.md`](docs/HOW-THIS-WAS-BUILT.md) for a plain-Engli
   the last ~30 seconds. When you're parked, cameras are shown as "Nearby" until you move.
 - Caltrans data is a free public service. RoadCam caches aggressively to keep its load low.
   Please keep it that way.
+
+Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, © [CARTO](https://carto.com/attributions).
 
 ## License
 

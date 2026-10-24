@@ -2,15 +2,27 @@ import { useCallback, useMemo, useState } from 'react';
 import { CameraCard } from './components/CameraCard';
 import { CameraSection } from './components/CameraSection';
 import { Lightbox } from './components/Lightbox';
+import { MapView } from './components/MapView';
 import { StartScreen } from './components/StartScreen';
 import { StatusBar } from './components/StatusBar';
 import { useCameras } from './hooks/useCameras';
 import { useLocation, type LocationMode } from './hooks/useLocation';
 import { useNow } from './hooks/useNow';
 import { classifyRelation, distanceMeters } from './lib/geo';
+import { guessCurrentRoute } from './lib/route';
 import type { NearbyCamera, Relation } from './lib/types';
 
 const MAX_PER_SECTION = 12;
+
+const MAP_PREF_KEY = 'roadcam.showMap';
+
+function initialShowMap(): boolean {
+  try {
+    return window.localStorage.getItem(MAP_PREF_KEY) !== 'false';
+  } catch {
+    return true; // storage can throw in private browsing; default to showing the map
+  }
+}
 
 function initialMode(): LocationMode {
   return new URLSearchParams(window.location.search).get('demo') === '1' ? 'demo' : 'off';
@@ -26,6 +38,16 @@ export function App() {
   const [mode, setMode] = useState<LocationMode>(initialMode);
   const [radiusMiles, setRadiusMiles] = useState(25);
   const [open, setOpen] = useState<NearbyCamera | null>(null);
+  const [showMap, setShowMap] = useState(initialShowMap);
+  const toggleMap = () =>
+    setShowMap((v) => {
+      try {
+        window.localStorage.setItem(MAP_PREF_KEY, String(!v));
+      } catch {
+        // ignore: the toggle still works for this visit
+      }
+      return !v;
+    });
 
   // Bumped on each "Use my location" tap, so you can retry after denying permission.
   const [attempt, setAttempt] = useState(0);
@@ -46,6 +68,12 @@ export function App() {
       }))
       .sort((a, b) => a.distance - b.distance);
   }, [cameras.data, location.position, location.heading]);
+
+  // Which highway are you on? Worked out from the cameras around you.
+  const route = useMemo(
+    () => (location.position && cameras.data ? guessCurrentRoute(location.position, cameras.data.cameras) : null),
+    [cameras.data, location.position],
+  );
 
   if (mode === 'off' || location.status === 'denied' || location.status === 'unavailable') {
     return (
@@ -88,8 +116,11 @@ export function App() {
         <StatusBar
           location={location}
           demo={mode === 'demo'}
+          route={route}
           radiusMiles={radiusMiles}
           onRadiusChange={setRadiusMiles}
+          showMap={showMap}
+          onToggleMap={toggleMap}
           onStop={() => setMode('off')}
         />
       </header>
@@ -101,6 +132,20 @@ export function App() {
       {cameras.data?.warnings.length ? (
         <p className="banner banner-warn">Some camera data is missing right now: {cameras.data.warnings.join(', ')}.</p>
       ) : null}
+
+      {showMap && location.position && (
+        <div className="map-wrap">
+          <MapView
+            me={location.position}
+            heading={location.heading}
+            cameras={placed}
+            radiusMiles={radiusMiles}
+            now={now}
+            refreshKey={refreshKey}
+            onOpen={setOpen}
+          />
+        </div>
+      )}
 
       {failedWithNoData ? (
         <main className="loading">Retrying shortly…</main>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ageMs, formatAge, freshness } from '../lib/age';
 import { formatDistance } from '../lib/geo';
+import { friendlyCameraName, sideLabel } from '../lib/names';
 import type { NearbyCamera } from '../lib/types';
 
 interface Props {
@@ -30,14 +31,14 @@ export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen }: 
         type="button"
         className="card-media"
         onClick={() => onOpen(camera)}
-        aria-label={`Enlarge image from ${camera.name}`}
+        aria-label={`Enlarge image from ${friendlyCameraName(camera.name)}`}
       >
         {failed ? (
           <div className="card-missing">Image unavailable</div>
         ) : (
           <img
             src={withCacheBust(camera.imageUrl, refreshKey)}
-            alt={`Latest view from ${camera.name}`}
+            alt={`Latest view from ${friendlyCameraName(camera.name)}`}
             loading="lazy"
             onError={() => setFailed(true)}
             onLoad={() => setFailed(false)}
@@ -51,11 +52,13 @@ export function CameraCard({ camera, distanceMeters, now, refreshKey, onOpen }: 
         <span className="badge distance">{formatDistance(distanceMeters)}</span>
       </button>
       <div className="card-body">
-        <h3 className="card-title">{camera.name}</h3>
+        <h3 className="card-title" title={`Caltrans name: ${camera.name}`}>
+          {friendlyCameraName(camera.name)}
+        </h3>
         <p className="card-meta">
           {camera.route && <span className="chip">{camera.route}</span>}
-          {camera.direction && <span className="chip chip-quiet">{camera.direction}bound side</span>}
-          {camera.nearbyPlace && <span className="muted">{camera.nearbyPlace}</span>}
+          {camera.direction && <span className="chip chip-quiet">{sideLabel(camera.direction)}</span>}
+          {camera.nearbyPlace && <span className="muted">near {camera.nearbyPlace}</span>}
         </p>
       </div>
     </article>

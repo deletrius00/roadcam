@@ -15,6 +15,7 @@ function cam(id: string, route: string, lat: number, lon: number, nearbyPlace = 
     imageUrl: 'https://example.com/x.jpg',
     updateFrequencyMin: null,
     recordedAt: null,
+    facing: null,
   };
 }
 

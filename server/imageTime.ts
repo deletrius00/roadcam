@@ -1,38 +1,49 @@
 /**
- * How old is a camera image?
+ * How old is a camera image, and is the camera actually working?
  *
- * The camera list tells us *where* the image is, but not exactly *when* it was taken.
- * Web servers usually answer that for free: a HEAD request (fetch the headers, skip the
- * picture) returns a `Last-Modified` header with the time the file last changed.
+ * We download just the first few KB of each image (an HTTP "Range" request):
+ * - the `Last-Modified` header says when the file last changed;
+ * - the first bytes are enough to spot a "Temporarily Unavailable" card (see placeholder.ts).
  */
+import { isPlaceholderImage, PLACEHOLDER_PROBE_BYTES } from './placeholder.js';
 
 const CACHE_TTL_MS = 30_000;
 const TIMEOUT_MS = 4_000;
-const cache = new Map<string, { checkedAt: number; value: string | null }>();
+
+export interface ImageInfo {
+  /** When the image file last changed (ISO 8601), or null if unknown. */
+  lastModified: string | null;
+  /** True when Caltrans is serving a "Temporarily Unavailable" / "Down" card instead of a picture. */
+  unavailable: boolean;
+}
+
+const cache = new Map<string, { checkedAt: number; value: ImageInfo }>();
 
 export function clearImageTimeCache(): void {
   cache.clear();
 }
 
-export async function fetchImageLastModified(
-  url: string,
-  fetchFn: typeof fetch,
-  now: number,
-): Promise<string | null> {
+export async function fetchImageInfo(url: string, fetchFn: typeof fetch, now: number): Promise<ImageInfo> {
   const hit = cache.get(url);
   if (hit && now - hit.checkedAt < CACHE_TTL_MS) return hit.value;
 
-  let value: string | null = null;
+  let value: ImageInfo = { lastModified: null, unavailable: false };
   try {
     const response = await fetchFn(url, {
-      method: 'HEAD',
+      headers: { Range: `bytes=0-${PLACEHOLDER_PROBE_BYTES - 1}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    const header = response.ok ? response.headers.get('last-modified') : null;
-    const parsed = header ? Date.parse(header) : Number.NaN;
-    value = Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
+    if (response.ok) {
+      const header = response.headers.get('last-modified');
+      const parsed = header ? Date.parse(header) : Number.NaN;
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      value = {
+        lastModified: Number.isNaN(parsed) ? null : new Date(parsed).toISOString(),
+        unavailable: isPlaceholderImage(bytes),
+      };
+    }
   } catch {
-    value = null; // timeouts and network errors just mean "unknown"
+    // timeouts and network errors just mean "unknown"
   }
   cache.set(url, { checkedAt: now, value });
   return value;

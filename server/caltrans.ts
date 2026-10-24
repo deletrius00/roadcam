@@ -16,6 +16,7 @@
  *                    "static": { "currentImageUpdateFrequency": "5",
  *                                "currentImageURL": "https://..." } } } } ] }
  */
+import { parseFacing } from '../src/lib/facing.js';
 import type { Camera } from '../src/lib/types.js';
 
 export const CALTRANS_DISTRICTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
@@ -43,6 +44,7 @@ interface RawCctv {
   };
   inService?: string | boolean;
   imageData?: {
+    imageDescription?: string;
     static?: {
       currentImageUpdateFrequency?: string | number;
       currentImageURL?: string;
@@ -131,6 +133,7 @@ export function parseCaltransFeed(json: unknown): Camera[] {
       imageUrl,
       updateFrequencyMin: toNumber(c.imageData?.static?.currentImageUpdateFrequency),
       recordedAt: pacificToIso(c.recordTimestamp?.recordDate, c.recordTimestamp?.recordTime),
+      facing: parseFacing(c.location?.locationName, c.imageData?.imageDescription),
     });
   }
   return cameras;

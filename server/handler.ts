@@ -8,10 +8,10 @@
  * changes every second while the list of nearby cameras changes slowly.
  */
 import { CALTRANS_DISTRICTS, caltransFeedUrl, parseCaltransFeed } from './caltrans.js';
-import { fetchImageLastModified, mapWithLimit } from './imageTime.js';
+import { fetchImageInfo, mapWithLimit } from './imageTime.js';
 import { demoNearby } from '../src/lib/demo.js';
 import { distanceMeters, METERS_PER_MILE } from '../src/lib/geo.js';
-import type { Camera, CamerasResponse, NearbyCamera } from '../src/lib/types.js';
+import type { Camera, CamerasResponse, LatLon, NearbyCamera } from '../src/lib/types.js';
 
 export const DEFAULT_RADIUS_MILES = 25;
 export const MAX_RADIUS_MILES = 100;
@@ -23,7 +23,7 @@ export interface HandlerDeps {
   now: () => number;
 }
 
-const defaultDeps: HandlerDeps = {
+export const defaultDeps: HandlerDeps = {
   fetch: (...args) => fetch(...args),
   now: () => Date.now(),
 };
@@ -34,7 +34,7 @@ export function clearFeedCache(): void {
   feedCache.clear();
 }
 
-function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
+export function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', ...extraHeaders },
@@ -58,12 +58,8 @@ async function loadDistrict(district: number, deps: HandlerDeps): Promise<Camera
   return cameras;
 }
 
-export async function handleCamerasRequest(
-  request: Request,
-  deps: HandlerDeps = defaultDeps,
-): Promise<Response> {
-  const params = new URL(request.url).searchParams;
-
+/** Read and check `lat`, `lon` and `radius` from a request. Returns a 400 response if invalid. */
+export function parseArea(params: URLSearchParams): { center: LatLon; radiusMiles: number } | Response {
   const lat = Number(params.get('lat'));
   const lon = Number(params.get('lon'));
   if (!params.has('lat') || !Number.isFinite(lat) || lat < -90 || lat > 90) {
@@ -77,8 +73,18 @@ export async function handleCamerasRequest(
   if (!Number.isFinite(radiusMiles) || radiusMiles <= 0 || radiusMiles > MAX_RADIUS_MILES) {
     return badRequest(`radius must be between 0 and ${MAX_RADIUS_MILES} miles`, 'radius');
   }
+  return { center: { lat, lon }, radiusMiles };
+}
 
-  const center = { lat, lon };
+export async function handleCamerasRequest(
+  request: Request,
+  deps: HandlerDeps = defaultDeps,
+): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+  const area = parseArea(params);
+  if (area instanceof Response) return area;
+  const { center, radiusMiles } = area;
+
   const radiusMeters = radiusMiles * METERS_PER_MILE;
   const now = deps.now();
 
@@ -112,12 +118,13 @@ export async function handleCamerasRequest(
     .slice(0, MAX_CAMERAS);
 
   const cameras: NearbyCamera[] = await mapWithLimit(nearby, 8, async ({ camera, distance }) => {
-    const lastModified = await fetchImageLastModified(camera.imageUrl, deps.fetch, now);
+    const { lastModified, unavailable } = await fetchImageInfo(camera.imageUrl, deps.fetch, now);
     return {
       ...camera,
       distanceMeters: distance,
       imageTakenAt: lastModified ?? camera.recordedAt,
       imageTimeSource: lastModified ? 'last-modified' : camera.recordedAt ? 'record' : 'unknown',
+      unavailable,
     };
   });
 

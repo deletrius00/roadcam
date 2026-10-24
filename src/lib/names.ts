@@ -57,8 +57,15 @@ function titleCase(text: string): string {
 }
 
 export function friendlyCameraName(raw: string): string {
-  // Drop internal camera ids like "TV320 --" at the start.
-  const name = raw.trim().replace(/^TV\d+\s*-+\s*/i, '');
+  const name = raw
+    .trim()
+    // Internal ids at the start: "TV320 --", "T252W --", "137 - ", "(C 012) "
+    .replace(/^(?:TV?\d+[A-Z]?\s*-+|\d+\s+-|\(\s*C\s*\d+\s*\))\s*/i, '')
+    // "- Looking East", "Look North Zoom" (shown separately as the camera's direction)
+    .replace(/\s*-?\s*\blook(?:ing)?\s+(?:north|south|east|west|[nsew])\b(?:\s+zoom)?/gi, '')
+    // Camera codes like "(C020)"
+    .replace(/\(\s*C\s*\d+\s*\)/gi, ' ')
+    .trim();
 
   let qualifier = '';
   let place = name;

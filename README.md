@@ -131,7 +131,7 @@ See [`docs/HOW-THIS-WAS-BUILT.md`](docs/HOW-THIS-WAS-BUILT.md) for a plain-Engli
 - Caltrans data is a free public service. RoadCam caches aggressively to keep its load low.
   Please keep it that way.
 
-Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, © [CARTO](https://carto.com/attributions).
+Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
 
 ## License
 

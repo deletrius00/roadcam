@@ -562,6 +562,10 @@ select {
 .map-tile.loaded {
   opacity: 1;
 }
+/* Dark mode: recolor the light OpenStreetMap tiles into a dark map. */
+.map.dark .map-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+}
 .map-radius {
   fill: none;
   stroke: var(--muted);

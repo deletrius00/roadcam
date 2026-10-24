@@ -89,7 +89,7 @@ or delete tests to make them pass.
 
 - Add dependencies without explaining why in the PR. Prefer the platform (fetch, Intl, CSS).
   The map is deliberately library-free (`src/lib/tiles.ts` + `MapView`); don't swap in Leaflet/Mapbox without an issue asking for it.
-- Remove the OpenStreetMap / CARTO attribution from the map (their terms require it).
+- Remove the OpenStreetMap attribution from the map (their terms require it).
 - Show raw Caltrans camera names in the UI. Use `friendlyCameraName()`.
 - Change the `/api/cameras` response shape in a breaking way. Add fields; don't rename or remove.
 - Increase load on Caltrans: keep the feed cache (10 min) and image-time cache (30 s);

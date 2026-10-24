@@ -91,11 +91,10 @@ describe('visibleTiles', () => {
     expect(visibleTiles({ x: 0, y: 0 }, 5, 0, 300)).toEqual([]);
   });
 
-  it('builds light, dark and retina tile URLs', () => {
+  it('builds OpenStreetMap tile URLs', () => {
     const [tile] = visibleTiles(project({ lat: 34.8, lon: -118.9 }, 12), 12, 10, 10);
     expect(tile).toBeDefined();
-    expect(tileUrl(tile!, false, false)).toMatch(/^https:\/\/[abcd]\.basemaps\.cartocdn\.com\/light_all\/12\/\d+\/\d+\.png$/);
-    expect(tileUrl(tile!, true, true)).toMatch(/\/dark_all\/12\/\d+\/\d+@2x\.png$/);
+    expect(tileUrl(tile!)).toMatch(/^https:\/\/tile\.openstreetmap\.org\/12\/\d+\/\d+\.png$/);
   });
 });
 

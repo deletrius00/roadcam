@@ -54,7 +54,6 @@ export function MapView({ me, heading, cameras, radiusMiles, coneDeg = 60, now, 
   const [manualCenter, setManualCenter] = useState<LatLon | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dark = usePrefersDark();
-  const retina = typeof window !== 'undefined' && window.devicePixelRatio > 1;
 
   // Keep track of the map's size on screen.
   useEffect(() => {
@@ -139,7 +138,7 @@ export function MapView({ me, heading, cameras, radiusMiles, coneDeg = 60, now, 
   return (
     <div
       ref={containerRef}
-      className="map"
+      className={`map ${dark ? 'dark' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -151,7 +150,7 @@ export function MapView({ me, heading, cameras, radiusMiles, coneDeg = 60, now, 
         {tiles.map((t) => (
           <img
             key={t.key}
-            src={tileUrl(t, dark, retina)}
+            src={tileUrl(t)}
             alt=""
             draggable={false}
             className="map-tile"
@@ -263,10 +262,7 @@ export function MapView({ me, heading, cameras, radiusMiles, coneDeg = 60, now, 
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
           OpenStreetMap
         </a>{' '}
-        ©{' '}
-        <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">
-          CARTO
-        </a>
+        contributors
       </div>
     </div>
   );

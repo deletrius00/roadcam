@@ -102,13 +102,11 @@ export function visibleTiles(center: Point, zoom: number, width: number, height:
 }
 
 /**
- * Image URL for a tile. Uses CARTO's free basemaps (built from OpenStreetMap data),
- * which come in light and dark styles. Attribution is shown on the map.
+ * Image URL for a tile, from OpenStreetMap's own tile servers (free, no key, attribution
+ * required and shown on the map). Dark mode is done by recoloring these in CSS.
  */
-export function tileUrl(tile: Tile, dark: boolean, retina: boolean): string {
-  const subdomain = 'abcd'[(tile.x + tile.y) % 4] ?? 'a';
-  const style = dark ? 'dark_all' : 'light_all';
-  return `https://${subdomain}.basemaps.cartocdn.com/${style}/${tile.z}/${tile.x}/${tile.y}${retina ? '@2x' : ''}.png`;
+export function tileUrl(tile: Tile): string {
+  return `https://tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png`;
 }
 
 /**

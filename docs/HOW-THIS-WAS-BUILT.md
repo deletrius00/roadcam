@@ -187,7 +187,7 @@ mode, and screenshotted. That review caught three real bugs:
 - **The map, without a map library.** Online maps are made of 256×256 picture squares called
   *tiles*. At zoom level z, the world is 256·2^z pixels wide. `src/lib/tiles.ts` converts GPS
   coordinates to pixels on that giant picture, works out which tiles cover the screen, and
-  loads them from CARTO (free tiles built from OpenStreetMap). `MapView` puts tiles, your blue
+  loads them from OpenStreetMap (free, no key). `MapView` puts tiles, your blue
   arrow, and the camera pins on top. The map also draws the **flashlight**: the yellow and
   purple slices are exactly the zones that decide ahead vs. behind.
 - **Friendly names.** Caltrans uses internal codes like `KER-5-AT TRUCK ESCAPE RAMP (SHOULDER)`

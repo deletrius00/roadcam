@@ -1296,3 +1296,9 @@ select {
 .weather .severity-extreme strong {
   color: #ff5d5d;
 }
+
+/* The 🚧 map button while it's showing every closure. */
+.map-controls button.pressed {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

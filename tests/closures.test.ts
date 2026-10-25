@@ -4,7 +4,7 @@ import { nwsAlertsUrl, parseNwsAlerts } from '../server/nws';
 import { MAX_HALF_SIDE_KM, parseTomtomIncidents, routeFromRoadNumbers, tomtomIncidentsUrl } from '../server/tomtomIncidents';
 import { wsdotAlertToClosure } from '../server/wsdot';
 import { alertIcon, kindClass, weatherIcon } from '../src/lib/alertIcons';
-import { closureWhen, splitClosures } from '../src/lib/closures';
+import { closuresForMap, closureWhen, splitClosures } from '../src/lib/closures';
 import type { Closure } from '../src/lib/types';
 
 // "Now" for these tests: Sat Oct 24 2026, 12:30 PM Pacific.
@@ -264,5 +264,19 @@ describe('alert icons', () => {
     expect(weatherIcon('Dense Fog Advisory')).toBe('🌫️');
     expect(weatherIcon('Coastal Flood Warning')).toBe('🌊');
     expect(kindClass('Stalled vehicle')).toBe('kind-stalled-vehicle');
+  });
+});
+
+describe('closuresForMap', () => {
+  const list = [
+    { id: 'road-now', status: 'active' as const, facility: 'Highway' },
+    { id: 'ramp-now', status: 'active' as const, facility: 'On ramp' },
+    { id: 'road-later', status: 'upcoming' as const, facility: 'Highway' },
+  ];
+  it('keeps the map calm: only highway closures happening now', () => {
+    expect(closuresForMap(list, false).map((c) => c.id)).toEqual(['road-now']);
+  });
+  it('shows everything when asked', () => {
+    expect(closuresForMap(list, true).map((c) => c.id)).toEqual(['road-now', 'ramp-now', 'road-later']);
   });
 });

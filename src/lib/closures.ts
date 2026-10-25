@@ -43,3 +43,14 @@ export function splitClosures(closures: readonly Closure[]): SplitClosures {
     .sort((a, b) => startOf(a) - startOf(b) || rampLast(a) - rampLast(b) || a.distanceMeters - b.distanceMeters);
   return { now, upcoming };
 }
+
+/**
+ * Which closures get a pin on the map. In a busy city there can be dozens of ramp closures
+ * and next-week jobs, which bury what matters. So by default the map only shows closures of
+ * the highway itself that are happening now; the list below the map still has everything.
+ * `showAll` (the 🚧 map button) puts every pin back.
+ */
+export function closuresForMap<T extends Pick<Closure, 'status' | 'facility'>>(closures: readonly T[], showAll: boolean): T[] {
+  if (showAll) return [...closures];
+  return closures.filter((c) => c.status === 'active' && c.facility === 'Highway');
+}

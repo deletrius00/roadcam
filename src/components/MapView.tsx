@@ -21,7 +21,7 @@ import {
   type Point,
 } from '../lib/tiles';
 import type { Closure, FlowLevel, FlowReading, Incident, LatLon, NearbyCamera, Relation, SignMessage } from '../lib/types';
-import { closureWhen } from '../lib/closures';
+import { closuresForMap, closureWhen } from '../lib/closures';
 import { withCacheBust } from './CameraCard';
 
 export interface MapCamera {
@@ -94,6 +94,8 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
   const [manualZoom, setManualZoom] = useState<number | null>(null);
   /** null = follow my position. Set once you drag or zoom around a point. */
   const [manualCenter, setManualCenter] = useState<LatLon | null>(null);
+  // Off: only highway closures happening now get pins. On: every closure, ramps and upcoming too.
+  const [allClosures, setAllClosures] = useState(false);
   const [selected, setSelected] = useState<Selected>(null);
   /** While two fingers are pinching, we stretch the map with CSS, then snap to a real zoom level. */
   const [pinch, setPinch] = useState<{ scale: number; originX: number; originY: number } | null>(null);
@@ -398,7 +400,7 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
           );
         })}
 
-        {closures.map((c) => {
+        {closuresForMap(closures, allClosures).map((c) => {
           const p = toScreen(c);
           if (!onScreen(p)) return null;
           return (
@@ -455,8 +457,8 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
         )}
         <span><i className="key key-offline" />Offline</span>
         {incidents.length > 0 && <span>💥 ⚠️ Incident</span>}
-        {closures.some((c) => c.status === 'active') && <span>🚧 Closure</span>}
-        {closures.some((c) => c.status === 'upcoming') && <span><i className="key key-upcoming" />Upcoming</span>}
+        {closuresForMap(closures, allClosures).length > 0 && <span>🚧 Closure</span>}
+        {allClosures && closures.some((c) => c.status === 'upcoming') && <span><i className="key key-upcoming" />Upcoming</span>}
         {signs.length > 0 && <span><i className="key key-sign" />Sign</span>}
         {(flow.length > 0 || speedTiles) && (
           <span>
@@ -481,6 +483,18 @@ export function MapView({ me, heading, cameras, incidents, signs, flow = [], spe
         <button type="button" onClick={() => zoomAround(size.width / 2, size.height / 2, -1)} aria-label="Zoom out">
           −
         </button>
+        {closures.length > 0 && (
+          <button
+            type="button"
+            className={allClosures ? 'pressed' : ''}
+            onClick={() => setAllClosures((v) => !v)}
+            aria-pressed={allClosures}
+            aria-label={allClosures ? 'Show only closures happening now' : 'Show all closures, including ramps and upcoming'}
+            title={allClosures ? 'Showing all closures' : 'Show all closures (ramps and upcoming)'}
+          >
+            <span aria-hidden="true">🚧</span>
+          </button>
+        )}
         {(manualCenter || manualZoom !== null) && (
           <button type="button" onClick={recenter} aria-label="Center on me" title="Center on me">
             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
